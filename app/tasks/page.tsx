@@ -194,13 +194,21 @@ export default function TasksPage() {
             }}
           >
             {state === 'completed' ? (
-              <motion.span
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className="text-2xl text-green-400"
+              <motion.div 
+                className="text-2xl text-green-400 font-bold"
+                animate={{ 
+                  scale: [1, 1.2, 1],
+                  opacity: [0.8, 1, 0.8]
+                }}
+                transition={{ 
+                  duration: 1.5, 
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+                style={{textShadow: '0 0 20px #2BB673'}}
               >
-                ✅
-              </motion.span>
+                {task.symbol}
+              </motion.div>
             ) : state === 'locked' ? (
               <span className="text-xl text-gray-400">🔒</span>
             ) : (
@@ -242,18 +250,26 @@ export default function TasksPage() {
             }}
           >
             {state === 'completed' ? (
-              <motion.span
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className="text-4xl text-green-400"
+              <motion.div 
+                className="text-2xl text-green-400 font-bold"
+                animate={{ 
+                  scale: [1, 1.2, 1],
+                  opacity: [0.8, 1, 0.8]
+                }}
+                transition={{ 
+                  duration: 1.5, 
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+                style={{textShadow: '0 0 20px #2BB673'}}
               >
-                ✅
-              </motion.span>
+                {task.symbol}
+              </motion.div>
             ) : state === 'locked' ? (
-              <span className="text-3xl text-gray-400">🔒</span>
+              <span className="text-xl text-gray-400">🔒</span>
             ) : (
               <motion.span 
-                className="text-4xl text-white font-bold"
+                className="text-2xl text-white font-bold"
                 animate={{ 
                   scale: [1, 1.2, 1],
                   opacity: [0.8, 1, 0.8]
@@ -283,18 +299,26 @@ export default function TasksPage() {
             }}
           >
             {state === 'completed' ? (
-              <motion.span
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className="text-4xl text-green-400"
+              <motion.div 
+                className="text-2xl text-green-400 font-bold"
+                animate={{ 
+                  scale: [1, 1.2, 1],
+                  opacity: [0.8, 1, 0.8]
+                }}
+                transition={{ 
+                  duration: 1.5, 
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+                style={{textShadow: '0 0 20px #2BB673'}}
               >
-                ✅
-              </motion.span>
+                {task.symbol}
+              </motion.div>
             ) : state === 'locked' ? (
-              <span className="text-3xl text-gray-400">🔒</span>
+              <span className="text-xl text-gray-400">🔒</span>
             ) : (
               <motion.span 
-                className="text-4xl text-white font-bold"
+                className="text-2xl text-white font-bold"
                 animate={{ 
                   scale: [1, 1.2, 1],
                   opacity: [0.8, 1, 0.8]
@@ -548,16 +572,39 @@ export default function TasksPage() {
               stiffness: 300,
               delay: 0.5
             }}
-            className="bg-black/40 rounded-lg p-4 mb-4 border border-white/10"
+            className="bg-black/40 rounded-lg p-4 mb-4 border border-white/10 relative group cursor-pointer hover:border-pink-500/50 transition-colors"
+            onClick={() => {
+              navigator.clipboard.writeText(registration.ticket)
+              // Show copy feedback
+              const element = document.querySelector('.copy-feedback')
+              if (element) {
+                element.classList.add('animate-pulse')
+                setTimeout(() => element.classList.remove('animate-pulse'), 1000)
+              }
+            }}
           >
             <motion.p 
-              className="text-2xl md:text-3xl font-mono font-bold text-white tracking-wider break-all"
+              className="text-2xl md:text-3xl font-mono font-bold text-white tracking-wider break-all select-all"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 1, duration: 0.8 }}
             >
               {registration.ticket}
             </motion.p>
+            
+            {/* Copy icon */}
+            <motion.div 
+              className="absolute top-2 right-2 text-white/50 text-sm opacity-0 group-hover:opacity-100 transition-opacity copy-feedback"
+              initial={{ scale: 0 }}
+              whileHover={{ scale: 1.1 }}
+            >
+              📋
+            </motion.div>
+            
+            {/* Copy tooltip */}
+            <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-black/80 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              Click to copy
+            </div>
           </motion.div>
           
           <div className="space-y-1 text-white/60 text-xs">
