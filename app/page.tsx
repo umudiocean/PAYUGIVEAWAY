@@ -142,75 +142,18 @@ export default function HomePage() {
             <span className="text-neon-pink neon-text">PAYU GIVEAWAY</span>!
           </motion.h1>
 
-          {/* Description */}
-          <div className="space-y-4 text-lg md:text-xl text-dark-text">
-            <motion.p
-              className="font-semibold"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
-            >
-              Win your chance right now:
-            </motion.p>
-            <motion.div
-              className="space-y-2"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.7 }}
-            >
-              <p className="flex items-center justify-center gap-2">
-                <span className="text-neon-teal">🔗</span>
-                Connect your wallet → instantly receive{' '}
-                <span className="font-bold text-neon-gold neon-text">250M PAYU</span>
-              </p>
-              <p className="flex items-center justify-center gap-2">
-                <span className="text-neon-pink">✅</span>
-                Complete social tasks → get your exclusive raffle ticket
-              </p>
-            </motion.div>
-          </div>
-
-          {/* Prizes Section */}
+          {/* Giveaway Image */}
           <motion.div
-            className="glass-card neon-border-teal rounded-xl p-6 md:p-8 space-y-4"
-            initial={{ opacity: 0, scale: 0.95 }}
+            className="w-full max-w-4xl mx-auto"
+            initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 1 }}
-            whileHover={{ scale: 1.02 }}
+            transition={{ delay: 0.5 }}
           >
-            <h2 className="text-2xl md:text-3xl font-bold text-neon-gold neon-text">
-              Grand Prizes:
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-base md:text-lg">
-              <motion.div
-                className="flex items-center gap-3"
-                whileHover={{ x: 10 }}
-              >
-                <span className="text-2xl">📱</span>
-                <span>1 lucky winner → <span className="text-neon-pink font-bold">iPhone 17 (256GB)</span></span>
-              </motion.div>
-              <motion.div
-                className="flex items-center gap-3"
-                whileHover={{ x: 10 }}
-              >
-                <span className="text-2xl">🎮</span>
-                <span>3 lucky winners → <span className="text-neon-teal font-bold">PlayStation 5</span></span>
-              </motion.div>
-              <motion.div
-                className="flex items-center gap-3"
-                whileHover={{ x: 10 }}
-              >
-                <span className="text-2xl">🎧</span>
-                <span>5 lucky winners → <span className="text-neon-purple font-bold">AirPods 4</span></span>
-              </motion.div>
-              <motion.div
-                className="flex items-center gap-3"
-                whileHover={{ x: 10 }}
-              >
-                <span className="text-2xl">💰</span>
-                <span>1000 lucky winners → <span className="text-neon-gold font-bold">2.5B PAYU</span></span>
-              </motion.div>
-            </div>
+            <img
+              src="/giveaway-prizes.png"
+              alt="PAYU Giveaway Prizes"
+              className="w-full h-auto rounded-xl shadow-2xl"
+            />
           </motion.div>
 
           {/* Connect Button */}
@@ -287,15 +230,6 @@ export default function HomePage() {
             )}
           </div>
 
-          {/* Footer Info */}
-          <motion.p
-            className="text-sm text-dark-text pt-4"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.5 }}
-          >
-            Registration fee: 0.00098 BNB | BSC Network Only
-          </motion.p>
         </div>
       </motion.div>
     </div>
