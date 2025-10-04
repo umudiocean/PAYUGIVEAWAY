@@ -298,10 +298,10 @@ export default function HomePage() {
         initial={{ opacity: 0, y: 50, scale: 0.9 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.8, ease: "easeOut" }}
-        className="max-w-6xl w-full h-full glass-card neon-border rounded-2xl p-4 md:p-6 relative mx-auto"
+        className="max-w-3xl w-full glass-card neon-border rounded-2xl p-4 md:p-6 relative mx-auto"
       >
-        {/* Main Content Area - Full Height */}
-        <div className="flex flex-col items-center justify-center h-full pt-16">
+        {/* Main Content Area */}
+        <div className="flex flex-col items-center justify-center pt-4">
           {/* Giveaway Banner - 75% Width */}
           <motion.div
             className="w-3/4 mx-auto"
