@@ -301,10 +301,10 @@ export default function HomePage() {
         className="max-w-4xl w-full glass-card neon-border rounded-2xl p-4 md:p-6 relative mx-auto"
       >
         {/* Main Content Area */}
-        <div className="flex flex-col items-center justify-center pt-4">
-          {/* Giveaway Banner - Full Width */}
+        <div className="flex flex-col items-center justify-center pt-2">
+          {/* Giveaway Banner - Reduced Width */}
           <motion.div
-            className="w-full mx-auto"
+            className="w-5/6 mx-auto"
             initial={{ opacity: 0, scale: 0.9, y: 30 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.8 }}
@@ -365,8 +365,8 @@ export default function HomePage() {
           </motion.div>
 
           {/* Connect Button and Countdown Side by Side */}
-          <div className="pt-8 w-full">
-            <div className="flex flex-col lg:flex-row items-center justify-center gap-6 lg:gap-8">
+          <div className="pt-4 w-full">
+            <div className="flex flex-col lg:flex-row items-center justify-center gap-4 lg:gap-6">
               {/* Connect Button */}
               <div className="flex-1 max-w-md">
                 {!isConnected ? (
