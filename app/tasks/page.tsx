@@ -6,6 +6,7 @@ import { useAccount } from 'wagmi'
 import { useRouter } from 'next/navigation'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { ParticleSystem } from '@/components/ParticleSystem'
+import { CountdownTimer } from '@/components/CountdownTimer'
 
 const TASKS = [
   { 
@@ -523,7 +524,10 @@ export default function TasksPage() {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 mt-8 space-y-8 relative z-10">
+      <div className="max-w-6xl mx-auto px-4 mt-8 space-y-6 relative z-10">
+        {/* Countdown Timer */}
+        <CountdownTimer />
+
         {/* Slim & Elegant Ticket Display */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}

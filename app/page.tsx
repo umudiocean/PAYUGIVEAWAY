@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { WelcomeAnimation } from '@/components/WelcomeAnimation'
+import { CountdownTimer } from '@/components/CountdownTimer'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
 import { CONTRACT_ADDRESS, CONTRACT_ABI, REGISTRATION_FEE } from '@/lib/contract'
@@ -293,6 +294,9 @@ export default function HomePage() {
         />
       </div>
 
+      {/* Countdown Timer */}
+      <CountdownTimer />
+      
       <motion.div
         initial={{ opacity: 0, y: 50, scale: 0.9 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
