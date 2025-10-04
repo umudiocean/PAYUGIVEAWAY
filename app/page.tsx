@@ -126,32 +126,16 @@ export default function HomePage() {
         className="max-w-4xl w-full glass-card neon-border rounded-2xl p-8 md:p-12 relative"
       >
         <div className="text-center space-y-8">
-          {/* Main Title */}
-          <motion.h1
-            className="text-3xl sm:text-4xl md:text-6xl font-neon font-black text-white leading-tight"
-            animate={{ 
-              textShadow: [
-                '0 0 10px #FF2A6D',
-                '0 0 20px #FF2A6D, 0 0 30px #FF2A6D',
-                '0 0 10px #FF2A6D'
-              ]
-            }}
-            transition={{ duration: 2, repeat: Infinity }}
-          >
-            WELCOME TO THE BIG{' '}
-            <span className="text-neon-pink neon-text">PAYU GIVEAWAY</span>!
-          </motion.h1>
-
-          {/* Giveaway Image */}
+          {/* Giveaway Banner */}
           <motion.div
-            className="w-full max-w-4xl mx-auto"
+            className="w-full max-w-5xl mx-auto"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.5 }}
           >
             <img
-              src="/giveaway-prizes.png"
-              alt="PAYU Giveaway Prizes"
+              src="/giveaway-banner.png"
+              alt="PAYU Giveaway Banner"
               className="w-full h-auto rounded-xl shadow-2xl"
             />
           </motion.div>
