@@ -424,17 +424,67 @@ export default function TasksPage() {
                   <motion.button
                     onClick={() => handleTaskClick(task.id, task.url)}
                     disabled={state === 'locked' || state === 'completed'}
-                    className={`w-full rounded-xl p-6 text-center space-y-4 transition-all duration-300 ${getCardClass(task.id)}`}
+                    className={`w-full rounded-xl p-6 text-center space-y-4 transition-all duration-300 backdrop-blur-md ${
+                      state === 'completed' 
+                        ? 'bg-green-500/20 border-2 border-green-500' 
+                        : state === 'locked' 
+                          ? 'bg-gray-500/20 border-2 border-gray-500 opacity-50' 
+                          : 'bg-pink-500/20 border-2 border-pink-500 hover:bg-pink-500/30'
+                    }`}
+                    style={{
+                      background: state === 'completed' 
+                        ? 'rgba(43, 182, 115, 0.2)' 
+                        : state === 'locked' 
+                          ? 'rgba(100, 100, 100, 0.2)' 
+                          : 'rgba(255, 42, 109, 0.2)',
+                      boxShadow: state === 'completed'
+                        ? '0 0 30px rgba(43, 182, 115, 0.7), inset 0 0 20px rgba(43, 182, 115, 0.1)'
+                        : state === 'locked'
+                          ? '0 0 20px rgba(100, 100, 100, 0.3)'
+                          : '0 0 30px rgba(255, 42, 109, 0.5), inset 0 0 20px rgba(255, 42, 109, 0.1)'
+                    }}
                     whileHover={state === 'active' ? { 
                       scale: 1.05,
                       y: -5,
-                      rotateY: 5
+                      boxShadow: '0 0 40px rgba(255, 42, 109, 0.8), inset 0 0 20px rgba(255, 42, 109, 0.2)'
                     } : {}}
                     whileTap={state === 'active' ? { scale: 0.95 } : {}}
                   >
                     {/* Shape Icon */}
-                    <div className="flex justify-center">
-                      {getShapeComponent(task, state)}
+                    <div className="flex justify-center mb-4">
+                      {task.shape === 'circle' && (
+                        <div className="w-20 h-20 rounded-full border-4 border-pink-500 bg-pink-500/20 flex items-center justify-center animate-pulse" style={{boxShadow: '0 0 30px #FF2A6D, inset 0 0 20px rgba(255, 42, 109, 0.3)'}}>
+                          {state === 'completed' ? (
+                            <span className="text-3xl text-green-400">✅</span>
+                          ) : state === 'locked' ? (
+                            <span className="text-2xl text-gray-400">🔒</span>
+                          ) : (
+                            <span className="text-3xl text-white font-bold" style={{textShadow: '0 0 20px #FF2A6D'}}>◯</span>
+                          )}
+                        </div>
+                      )}
+                      {task.shape === 'triangle' && (
+                        <div className="w-20 h-20 border-4 border-teal-500 bg-teal-500/20 flex items-center justify-center animate-pulse" style={{clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)', boxShadow: '0 0 30px #2BB673, inset 0 0 20px rgba(43, 182, 115, 0.3)'}}>
+                          {state === 'completed' ? (
+                            <span className="text-3xl text-green-400">✅</span>
+                          ) : state === 'locked' ? (
+                            <span className="text-2xl text-gray-400">🔒</span>
+                          ) : (
+                            <span className="text-3xl text-white font-bold" style={{textShadow: '0 0 20px #2BB673'}}>△</span>
+                          )}
+                        </div>
+                      )}
+                      {task.shape === 'square' && (
+                        <div className="w-20 h-20 border-4 border-purple-500 bg-purple-500/20 flex items-center justify-center animate-pulse" style={{boxShadow: '0 0 30px #6A00FF, inset 0 0 20px rgba(106, 0, 255, 0.3)'}}>
+                          {state === 'completed' ? (
+                            <span className="text-3xl text-green-400">✅</span>
+                          ) : state === 'locked' ? (
+                            <span className="text-2xl text-gray-400">🔒</span>
+                          ) : (
+                            <span className="text-3xl text-white font-bold" style={{textShadow: '0 0 20px #6A00FF'}}>⬜</span>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     {/* Task Info */}
