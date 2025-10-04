@@ -79,13 +79,13 @@ export default function TasksPage() {
       if (completedTasks.includes(task.id)) {
         newStates[task.id] = 'completed'
         // Sonraki görevi aç
-        if (index < TASKS.length - 1) {
+        if (index < TASKS.length - 1 && !completedTasks.includes(TASKS[index + 1].id)) {
           setTimeout(() => {
             setRevealedSteps(prev => [...prev, index + 1])
-            setTaskStates(prev => ({ ...prev, [TASKS[index + 1].id]: 'active' }))
+            newStates[TASKS[index + 1].id] = 'active'
           }, 1500)
         }
-      } else if (index === 0 || completedTasks.includes(TASKS[index - 1].id)) {
+      } else if (index === 0 || (index > 0 && completedTasks.includes(TASKS[index - 1].id))) {
         newStates[task.id] = 'active'
       } else {
         newStates[task.id] = 'locked'
@@ -198,21 +198,25 @@ export default function TasksPage() {
             ) : state === 'locked' ? (
               <span className="text-xl text-gray-400">🔒</span>
             ) : (
-              <motion.span 
-                className="text-2xl text-white font-bold"
-                animate={{ 
-                  scale: [1, 1.2, 1],
-                  opacity: [0.8, 1, 0.8]
-                }}
-                transition={{ 
-                  duration: 1.5, 
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
-                style={{textShadow: '0 0 20px #FF2A6D'}}
-              >
-                {task.symbol}
-              </motion.span>
+              <div className="relative">
+                <div className="w-8 h-8 rounded-full border border-white/80 bg-transparent flex items-center justify-center">
+                  <motion.span 
+                    className="text-lg text-white font-bold"
+                    animate={{ 
+                      scale: [1, 1.2, 1],
+                      opacity: [0.8, 1, 0.8]
+                    }}
+                    transition={{ 
+                      duration: 1.5, 
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                    style={{textShadow: '0 0 20px #FF2A6D'}}
+                  >
+                    ◯
+                  </motion.span>
+                </div>
+              </div>
             )}
           </div>
         )}
@@ -326,22 +330,9 @@ export default function TasksPage() {
         onComplete={() => setParticleTrigger(false)}
       />
 
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-black/90 backdrop-blur-md border-b-2 border-pink-500">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
-          <motion.h1 
-            className="text-2xl md:text-3xl font-bold text-white"
-            animate={{ 
-              textShadow: [
-                '0 0 10px rgba(255, 42, 109, 0.8)',
-                '0 0 20px rgba(255, 42, 109, 1)',
-                '0 0 10px rgba(255, 42, 109, 0.8)'
-              ]
-            }}
-            transition={{ duration: 2, repeat: Infinity }}
-          >
-            SQUID GAME - PAYU GIVEAWAY
-          </motion.h1>
+      {/* Connect Button Only */}
+      <div className="sticky top-0 z-10 bg-black/90 backdrop-blur-md">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex justify-end">
           <ConnectButton showBalance={false} chainStatus="none" />
         </div>
       </div>
@@ -435,7 +426,7 @@ export default function TasksPage() {
           <div className="flex justify-between items-center mb-3">
             <h3 className="text-sm font-light text-pink-400 tracking-wider">MISSION PROGRESS</h3>
             <span className="text-sm font-bold text-yellow-400">
-              {completedTasks.length}/3
+              {Math.min(completedTasks.length, 3)}/3
             </span>
           </div>
           
@@ -443,7 +434,7 @@ export default function TasksPage() {
             <motion.div 
               className={`h-full bg-gradient-to-r ${getProgressColor()} rounded-full`}
               initial={{ width: 0 }}
-              animate={{ width: `${(completedTasks.length / 3) * 100}%` }}
+              animate={{ width: `${(Math.min(completedTasks.length, 3) / 3) * 100}%` }}
               transition={{ duration: 1, ease: "easeOut" }}
               style={{
                 boxShadow: '0 0 10px currentColor'
