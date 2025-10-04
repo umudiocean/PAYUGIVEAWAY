@@ -175,10 +175,10 @@ export default function TasksPage() {
     const isRevealed = revealedSteps.includes(index)
     
     return (
-      <div className={`flex justify-center mb-4 ${isRevealed ? 'step-reveal active' : 'step-reveal'}`}>
+      <div className={`flex justify-center mb-3 ${isRevealed ? 'step-reveal active' : 'step-reveal'}`}>
         {task.shape === 'circle' && (
           <div 
-            className={`w-24 h-24 rounded-full border-4 border-pink-500 bg-pink-500/20 flex items-center justify-center ${
+            className={`w-16 h-16 rounded-full border-2 border-pink-500 bg-pink-500/20 flex items-center justify-center ${
               state === 'active' ? 'shape-birth animate-pulse' : ''
             }`}
             style={{
@@ -191,15 +191,15 @@ export default function TasksPage() {
               <motion.span
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                className="text-4xl text-green-400"
+                className="text-2xl text-green-400"
               >
                 ✅
               </motion.span>
             ) : state === 'locked' ? (
-              <span className="text-3xl text-gray-400">🔒</span>
+              <span className="text-xl text-gray-400">🔒</span>
             ) : (
               <motion.span 
-                className="text-4xl text-white font-bold"
+                className="text-2xl text-white font-bold"
                 animate={{ 
                   scale: [1, 1.2, 1],
                   opacity: [0.8, 1, 0.8]
@@ -219,7 +219,7 @@ export default function TasksPage() {
         
         {task.shape === 'triangle' && (
           <div 
-            className={`w-24 h-24 border-4 border-white bg-white/20 flex items-center justify-center ${
+            className={`w-16 h-16 border-2 border-white bg-white/20 flex items-center justify-center ${
               state === 'active' ? 'shape-birth animate-pulse' : ''
             }`}
             style={{
@@ -261,7 +261,7 @@ export default function TasksPage() {
         
         {task.shape === 'square' && (
           <div 
-            className={`w-24 h-24 border-4 border-yellow-500 bg-yellow-500/20 flex items-center justify-center ${
+            className={`w-16 h-16 border-2 border-yellow-500 bg-yellow-500/20 flex items-center justify-center ${
               state === 'active' ? 'golden-gate animate-pulse' : ''
             }`}
             style={{
@@ -347,87 +347,122 @@ export default function TasksPage() {
       </div>
 
       <div className="max-w-6xl mx-auto px-4 mt-8 space-y-8 relative z-10">
-        {/* Ticket Display */}
+        {/* Slim & Elegant Ticket Display */}
         <motion.div
-          initial={{ opacity: 0, y: 50 }}
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-black/80 backdrop-blur-md border-2 border-pink-500 rounded-2xl p-8 text-center"
+          className="max-w-lg mx-auto bg-black/60 backdrop-blur-xl border border-pink-500/50 rounded-xl p-6 text-center relative overflow-hidden"
           style={{
-            boxShadow: '0 0 30px rgba(255, 42, 109, 0.3), inset 0 0 20px rgba(255, 42, 109, 0.1)'
+            boxShadow: '0 0 20px rgba(255, 42, 109, 0.2), inset 0 0 20px rgba(255, 42, 109, 0.05)',
+            background: 'linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(20,20,20,0.8) 100%)'
           }}
         >
+          {/* Background neon waves */}
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-pink-500 via-purple-500 to-yellow-500 animate-pulse"></div>
+            <div className="absolute bottom-0 right-0 w-full h-1 bg-gradient-to-l from-pink-500 via-purple-500 to-yellow-500 animate-pulse" style={{animationDelay: '1s'}}></div>
+          </div>
+          
+          {/* Ticket icon */}
+          <motion.div
+            animate={{ rotate: [0, 5, -5, 0] }}
+            transition={{ duration: 3, repeat: Infinity }}
+            className="absolute top-3 right-3 text-yellow-400"
+            style={{textShadow: '0 0 10px rgba(255, 215, 0, 0.8)'}}
+          >
+            🎟️
+          </motion.div>
+          
           <motion.h2 
-            className="text-2xl md:text-3xl font-bold mb-6 text-yellow-400"
+            className="text-sm font-light mb-4 text-pink-400 tracking-wider"
             animate={{ 
               textShadow: [
-                '0 0 15px rgba(255, 215, 0, 0.8)',
-                '0 0 25px rgba(255, 215, 0, 1)',
-                '0 0 15px rgba(255, 215, 0, 0.8)'
+                '0 0 5px rgba(255, 42, 109, 0.5)',
+                '0 0 10px rgba(255, 42, 109, 0.8)',
+                '0 0 5px rgba(255, 42, 109, 0.5)'
               ]
             }}
-            transition={{ duration: 2, repeat: Infinity }}
+            transition={{ duration: 3, repeat: Infinity }}
           >
             YOUR RAFFLE TICKET
           </motion.h2>
           
           <motion.div
-            initial={{ scale: 0.8 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", stiffness: 200 }}
-            className="bg-black/60 rounded-xl p-6 mb-4"
-            style={{
-              boxShadow: '0 0 30px rgba(255, 42, 109, 0.3)'
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ 
+              type: "spring", 
+              stiffness: 300,
+              delay: 0.5
             }}
+            className="bg-black/40 rounded-lg p-4 mb-4 border border-white/10"
           >
-            <p className="text-4xl md:text-5xl font-mono font-bold text-white tracking-wider break-all">
+            <motion.p 
+              className="text-2xl md:text-3xl font-mono font-bold text-white tracking-wider break-all"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1, duration: 0.8 }}
+            >
               {registration.ticket}
-            </p>
+            </motion.p>
           </motion.div>
           
-          <div className="space-y-2 text-white/80">
-            <p className="text-lg">✅ 250M PAYU received</p>
-            <p className="text-sm">Registered: {new Date(registration.createdAt).toLocaleString()}</p>
-            <p className="text-sm font-bold">Keep this ticket safe!</p>
+          <div className="space-y-1 text-white/60 text-xs">
+            <p className="text-green-400">✅ 250M PAYU received</p>
+            <p className="text-white/50">Registered: {new Date(registration.createdAt).toLocaleString()}</p>
+            <motion.p 
+              className="text-yellow-400 italic font-light"
+              animate={{ 
+                textShadow: [
+                  '0 0 5px rgba(255, 215, 0, 0.3)',
+                  '0 0 10px rgba(255, 215, 0, 0.6)',
+                  '0 0 5px rgba(255, 215, 0, 0.3)'
+                ]
+              }}
+              transition={{ duration: 4, repeat: Infinity }}
+            >
+              Keep this ticket safe!
+            </motion.p>
           </div>
         </motion.div>
 
-        {/* Dynamic Progress Bar */}
+        {/* Slim Progress Bar */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-black/80 backdrop-blur-md border-2 border-pink-500 rounded-xl p-6"
+          className="max-w-md mx-auto bg-black/60 backdrop-blur-xl border border-pink-500/50 rounded-lg p-4"
         >
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-bold text-white">MISSION PROGRESS</h3>
-            <span className="text-lg font-bold text-yellow-400">
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="text-sm font-light text-pink-400 tracking-wider">MISSION PROGRESS</h3>
+            <span className="text-sm font-bold text-yellow-400">
               {completedTasks.length}/3
             </span>
           </div>
           
-          <div className="relative h-4 bg-black/50 rounded-full overflow-hidden">
+          <div className="relative h-2 bg-black/50 rounded-full overflow-hidden">
             <motion.div 
               className={`h-full bg-gradient-to-r ${getProgressColor()} rounded-full`}
               initial={{ width: 0 }}
               animate={{ width: `${(completedTasks.length / 3) * 100}%` }}
               transition={{ duration: 1, ease: "easeOut" }}
               style={{
-                boxShadow: '0 0 20px currentColor'
+                boxShadow: '0 0 10px currentColor'
               }}
             />
           </div>
         </motion.div>
 
-        {/* Cinematic Tasks */}
+        {/* Compact Cinematic Tasks */}
         <motion.div
-          initial={{ opacity: 0, y: 50 }}
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-black/80 backdrop-blur-md border-2 border-pink-500 rounded-2xl p-8"
+          className="max-w-4xl mx-auto bg-black/60 backdrop-blur-xl border border-pink-500/50 rounded-xl p-6"
         >
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8 text-white">
+          <h2 className="text-lg font-light text-center mb-6 text-pink-400 tracking-wider">
             COMPLETE MISSIONS TO ENTER
           </h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {TASKS.map((task, index) => {
               const state = taskStates[task.id]
               const isRevealed = revealedSteps.includes(index)
@@ -449,12 +484,12 @@ export default function TasksPage() {
                   <motion.button
                     onClick={() => handleTaskClick(task.id, task.url)}
                     disabled={state === 'locked' || state === 'completed'}
-                    className={`w-full rounded-xl p-6 text-center space-y-4 transition-all duration-300 backdrop-blur-md ${
+                    className={`w-full rounded-lg p-4 text-center space-y-3 transition-all duration-300 backdrop-blur-xl ${
                       state === 'completed' 
-                        ? 'bg-green-500/20 border-2 border-green-500' 
+                        ? 'bg-green-500/10 border border-green-500/50' 
                         : state === 'locked' 
-                          ? 'bg-gray-500/20 border-2 border-gray-500 opacity-50' 
-                          : 'bg-pink-500/20 border-2 border-pink-500 hover:bg-pink-500/30'
+                          ? 'bg-gray-500/10 border border-gray-500/50 opacity-50' 
+                          : 'bg-pink-500/10 border border-pink-500/50 hover:bg-pink-500/20'
                     }`}
                     style={{
                       background: state === 'completed' 
@@ -479,31 +514,31 @@ export default function TasksPage() {
                     {getShapeComponent(task, state, index)}
 
                     {/* Task Info */}
-                    <div className="space-y-2">
-                      <h3 className="text-lg md:text-xl font-bold text-white">
+                    <div className="space-y-1">
+                      <h3 className="text-sm font-bold text-white">
                         {task.name}
                       </h3>
-                      <p className="text-sm text-white/70">
+                      <p className="text-xs text-white/60">
                         {task.description}
                       </p>
                     </div>
 
                     {/* Status */}
-                    <div className="pt-2">
+                    <div className="pt-1">
                       {state === 'completed' ? (
                         <motion.span
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
-                          className="text-green-400 font-bold"
+                          className="text-green-400 font-bold text-xs"
                         >
                           ✓ COMPLETED
                         </motion.span>
                       ) : state === 'locked' ? (
-                        <span className="text-gray-500 font-bold">
+                        <span className="text-gray-500 font-bold text-xs">
                           🔒 LOCKED
                         </span>
                       ) : (
-                        <span className="text-pink-400 font-bold hover:text-white transition-colors">
+                        <span className="text-pink-400 font-bold hover:text-white transition-colors text-xs">
                           CLICK TO COMPLETE
                         </span>
                       )}
