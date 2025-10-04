@@ -128,16 +128,64 @@ export default function HomePage() {
         <div className="text-center space-y-8">
           {/* Giveaway Banner */}
           <motion.div
-            className="w-full max-w-5xl mx-auto"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.5 }}
+            className="w-full max-w-4xl mx-auto"
+            initial={{ opacity: 0, scale: 0.9, y: 30 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ delay: 0.5, duration: 0.8 }}
+            whileHover={{ scale: 1.02 }}
           >
-            <img
-              src="/giveaway-banner.png"
-              alt="PAYU Giveaway Banner"
-              className="w-full h-auto rounded-xl shadow-2xl"
-            />
+            <div className="relative overflow-hidden rounded-xl">
+              <img
+                src="/giveaway-banner.png"
+                alt="PAYU Giveaway Banner"
+                className="w-full h-auto rounded-xl shadow-2xl transition-all duration-300 hover:shadow-neon-pink/30"
+                style={{
+                  filter: 'drop-shadow(0 0 20px rgba(255, 42, 109, 0.3))'
+                }}
+              />
+              
+              {/* Glow Effect Overlay */}
+              <motion.div
+                className="absolute inset-0 rounded-xl pointer-events-none"
+                animate={{
+                  boxShadow: [
+                    '0 0 20px rgba(255, 42, 109, 0.3)',
+                    '0 0 40px rgba(255, 42, 109, 0.5)',
+                    '0 0 20px rgba(255, 42, 109, 0.3)'
+                  ]
+                }}
+                transition={{ duration: 3, repeat: Infinity }}
+              />
+              
+              {/* Floating Particles */}
+              <motion.div
+                className="absolute top-4 right-4 w-2 h-2 bg-neon-pink rounded-full opacity-60"
+                animate={{
+                  y: [0, -10, 0],
+                  x: [0, 5, 0],
+                  scale: [1, 1.2, 1]
+                }}
+                transition={{ duration: 2, repeat: Infinity, delay: 0 }}
+              />
+              <motion.div
+                className="absolute bottom-6 left-6 w-1 h-1 bg-neon-gold rounded-full opacity-40"
+                animate={{
+                  y: [0, -8, 0],
+                  x: [0, -3, 0],
+                  scale: [1, 1.5, 1]
+                }}
+                transition={{ duration: 2.5, repeat: Infinity, delay: 1 }}
+              />
+              <motion.div
+                className="absolute top-1/2 left-4 w-1.5 h-1.5 bg-neon-teal rounded-full opacity-50"
+                animate={{
+                  y: [0, -12, 0],
+                  x: [0, 8, 0],
+                  scale: [1, 1.3, 1]
+                }}
+                transition={{ duration: 3, repeat: Infinity, delay: 0.5 }}
+              />
+            </div>
           </motion.div>
 
           {/* Connect Button */}
@@ -147,11 +195,38 @@ export default function HomePage() {
                 {({ openConnectModal }) => (
                   <motion.button
                     onClick={openConnectModal}
-                    className="neon-button text-xl md:text-2xl py-4 md:py-6 px-8 md:px-12 rounded-xl hover-lift"
+                    className="neon-button text-xl md:text-2xl py-4 md:py-6 px-8 md:px-12 rounded-xl hover-lift relative overflow-hidden"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
+                    animate={{
+                      boxShadow: [
+                        '0 0 20px rgba(255, 42, 109, 0.5)',
+                        '0 0 30px rgba(255, 42, 109, 0.8)',
+                        '0 0 20px rgba(255, 42, 109, 0.5)'
+                      ]
+                    }}
+                    transition={{ duration: 2, repeat: Infinity }}
                   >
-                    JOIN THE GIVEAWAY
+                    <motion.span
+                      className="relative z-10"
+                      animate={{ 
+                        textShadow: [
+                          '0 0 10px rgba(255, 255, 255, 0.8)',
+                          '0 0 20px rgba(255, 255, 255, 1)',
+                          '0 0 10px rgba(255, 255, 255, 0.8)'
+                        ]
+                      }}
+                      transition={{ duration: 1.5, repeat: Infinity }}
+                    >
+                      JOIN THE GIVEAWAY
+                    </motion.span>
+                    
+                    {/* Button Glow Effect */}
+                    <motion.div
+                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
+                      animate={{ x: ['-100%', '100%'] }}
+                      transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+                    />
                   </motion.button>
                 )}
               </ConnectButton.Custom>
