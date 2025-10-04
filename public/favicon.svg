@@ -1,0 +1,11 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Squid Game Triangle Shape in Pink -->
+  <path d="M16 4L28 24H4L16 4Z" fill="#FF69B4" stroke="#FF1493" stroke-width="1.5"/>
+  
+  <!-- Inner triangle for depth -->
+  <path d="M16 8L24 22H8L16 8Z" fill="#FFB6C1"/>
+  
+  <!-- Small decorative elements -->
+  <circle cx="16" cy="14" r="1.5" fill="#FF1493"/>
+  <circle cx="16" cy="18" r="1" fill="#FF69B4"/>
+</svg>

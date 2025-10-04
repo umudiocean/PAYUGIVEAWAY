@@ -11,40 +11,45 @@ interface TimeLeft {
 }
 
 export function CountdownTimer() {
+  // Gerçek çekiliş tarihi: Bugün saat 20:00 (bugün başlatılıyor)
+  const targetDate = new Date()
+  targetDate.setHours(20, 0, 0, 0) // 20:00:00
+  
+  // Eğer şu anki saat 20:00'ı geçtiyse, yarın saat 20:00'a ayarla
+  if (targetDate.getTime() <= new Date().getTime()) {
+    targetDate.setDate(targetDate.getDate() + 1)
+  }
+
   const [timeLeft, setTimeLeft] = useState<TimeLeft>({
-    days: 45,
-    hours: 23,
-    minutes: 59,
-    seconds: 59
+    days: 0,
+    hours: 0,
+    minutes: 0,
+    seconds: 0
   })
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft(prevTime => {
-        let { days, hours, minutes, seconds } = prevTime
+    const calculateTimeLeft = () => {
+      const now = new Date().getTime()
+      const targetTime = targetDate.getTime()
+      const difference = targetTime - now
 
-        if (seconds > 0) {
-          seconds--
-        } else if (minutes > 0) {
-          minutes--
-          seconds = 59
-        } else if (hours > 0) {
-          hours--
-          minutes = 59
-          seconds = 59
-        } else if (days > 0) {
-          days--
-          hours = 23
-          minutes = 59
-          seconds = 59
-        } else {
-          // Countdown finished
-          return { days: 0, hours: 0, minutes: 0, seconds: 0 }
-        }
+      if (difference > 0) {
+        const days = Math.floor(difference / (1000 * 60 * 60 * 24))
+        const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+        const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60))
+        const seconds = Math.floor((difference % (1000 * 60)) / 1000)
 
-        return { days, hours, minutes, seconds }
-      })
-    }, 1000)
+        setTimeLeft({ days, hours, minutes, seconds })
+      } else {
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 })
+      }
+    }
+
+    // İlk hesaplama
+    calculateTimeLeft()
+
+    // Her saniye güncelle
+    const timer = setInterval(calculateTimeLeft, 1000)
 
     return () => clearInterval(timer)
   }, [])
@@ -199,7 +204,7 @@ export function CountdownTimer() {
             className="h-full bg-gradient-to-r from-pink-500 to-purple-500 rounded-full"
             initial={{ width: '100%' }}
             animate={{ 
-              width: `${((timeLeft.days * 24 * 60 * 60 + timeLeft.hours * 60 * 60 + timeLeft.minutes * 60 + timeLeft.seconds) / (45 * 24 * 60 * 60 + 23 * 60 * 60 + 59 * 60 + 59)) * 100}%`
+              width: `${((timeLeft.days * 24 * 60 * 60 + timeLeft.hours * 60 * 60 + timeLeft.minutes * 60 + timeLeft.seconds) / (24 * 60 * 60)) * 100}%`
             }}
             transition={{ duration: 1, ease: "easeOut" }}
             style={{ boxShadow: '0 0 5px currentColor' }}

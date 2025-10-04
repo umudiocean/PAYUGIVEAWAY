@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 import { Providers } from './providers'
 
 export const metadata: Metadata = {
-  title: 'Payu Giveaway - Win Big Prizes!',
+  title: 'Payu Giveaway',
   description: 'Connect your wallet, complete tasks, and win iPhone 17, PS5, AirPods, and PAYU tokens!',
   viewport: {
     width: 'device-width',
@@ -11,10 +11,15 @@ export const metadata: Metadata = {
     maximumScale: 1,
     userScalable: false,
   },
-  themeColor: '#FF2A6D',
+  themeColor: '#FF69B4',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
+  },
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
+    apple: '/favicon.svg',
   },
 }
 
