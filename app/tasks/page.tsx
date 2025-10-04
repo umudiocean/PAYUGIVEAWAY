@@ -332,6 +332,160 @@ export default function TasksPage() {
 
   return (
     <div className={`min-h-screen bg-black pb-8 relative overflow-hidden ${glitchMode ? 'glitch-transition' : ''}`}>
+      {/* Squid Game Background Effects */}
+      <div className="absolute inset-0 pointer-events-none">
+        {/* Large Squid Game Symbols */}
+        <motion.div
+          className="absolute top-20 left-20 w-40 h-40 border-4 border-pink-500 opacity-20 rounded-full"
+          animate={{ 
+            rotate: 360,
+            scale: [1, 1.3, 1],
+            opacity: [0.1, 0.3, 0.1]
+          }}
+          transition={{ 
+            rotate: { duration: 20, repeat: Infinity, ease: "linear" },
+            scale: { duration: 4, repeat: Infinity },
+            opacity: { duration: 3, repeat: Infinity }
+          }}
+        />
+        
+        <motion.div
+          className="absolute top-40 right-32 w-32 h-32 border-4 border-white opacity-25"
+          animate={{ 
+            rotate: -360,
+            scale: [1, 1.4, 1],
+            opacity: [0.15, 0.4, 0.15]
+          }}
+          transition={{ 
+            rotate: { duration: 25, repeat: Infinity, ease: "linear" },
+            scale: { duration: 3.5, repeat: Infinity },
+            opacity: { duration: 2.5, repeat: Infinity }
+          }}
+          style={{ clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)' }}
+        />
+        
+        <motion.div
+          className="absolute bottom-40 left-40 w-24 h-24 border-4 border-yellow-500 opacity-20"
+          animate={{ 
+            rotate: 180,
+            scale: [1, 1.5, 1],
+            opacity: [0.1, 0.3, 0.1]
+          }}
+          transition={{ 
+            rotate: { duration: 30, repeat: Infinity, ease: "linear" },
+            scale: { duration: 5, repeat: Infinity },
+            opacity: { duration: 4, repeat: Infinity }
+          }}
+        />
+
+        {/* Floating Squid Game Icons */}
+        <motion.div
+          className="absolute top-1/4 left-1/4 text-pink-500 text-4xl opacity-30"
+          animate={{
+            y: [0, -30, 0],
+            rotate: [0, 10, -10, 0],
+            opacity: [0.2, 0.4, 0.2]
+          }}
+          transition={{ duration: 4, repeat: Infinity }}
+        >
+          ◯
+        </motion.div>
+
+        <motion.div
+          className="absolute top-1/3 right-1/4 text-white text-4xl opacity-25"
+          animate={{
+            y: [0, -25, 0],
+            rotate: [0, -15, 15, 0],
+            opacity: [0.15, 0.35, 0.15]
+          }}
+          transition={{ duration: 3.5, repeat: Infinity, delay: 1 }}
+        >
+          △
+        </motion.div>
+
+        <motion.div
+          className="absolute bottom-1/3 right-1/3 text-yellow-500 text-4xl opacity-30"
+          animate={{
+            y: [0, -20, 0],
+            rotate: [0, 20, -20, 0],
+            opacity: [0.2, 0.4, 0.2]
+          }}
+          transition={{ duration: 4.5, repeat: Infinity, delay: 2 }}
+        >
+          ⬜
+        </motion.div>
+
+        {/* Neon Grid Lines */}
+        <motion.div
+          className="absolute top-1/2 left-0 w-full h-px bg-gradient-to-r from-transparent via-pink-500 to-transparent opacity-20"
+          animate={{
+            opacity: [0.1, 0.3, 0.1],
+            scaleX: [0.8, 1.2, 0.8]
+          }}
+          transition={{ duration: 3, repeat: Infinity }}
+        />
+        
+        <motion.div
+          className="absolute top-0 left-1/2 h-full w-px bg-gradient-to-b from-transparent via-white to-transparent opacity-15"
+          animate={{
+            opacity: [0.05, 0.25, 0.05],
+            scaleY: [0.8, 1.2, 0.8]
+          }}
+          transition={{ duration: 4, repeat: Infinity, delay: 1.5 }}
+        />
+
+        {/* Squid Game Mask Icons */}
+        <motion.div
+          className="absolute top-1/6 right-1/6 text-6xl opacity-10"
+          animate={{
+            rotate: [0, 360],
+            scale: [1, 1.2, 1]
+          }}
+          transition={{ 
+            rotate: { duration: 15, repeat: Infinity, ease: "linear" },
+            scale: { duration: 6, repeat: Infinity }
+          }}
+        >
+          🎭
+        </motion.div>
+
+        <motion.div
+          className="absolute bottom-1/6 left-1/6 text-5xl opacity-15"
+          animate={{
+            rotate: [0, -360],
+            scale: [1, 1.3, 1]
+          }}
+          transition={{ 
+            rotate: { duration: 18, repeat: Infinity, ease: "linear" },
+            scale: { duration: 7, repeat: Infinity, delay: 2 }
+          }}
+        >
+          🦑
+        </motion.div>
+
+        {/* Floating Particles */}
+        {[...Array(20)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute w-1 h-1 bg-pink-500 rounded-full"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              opacity: Math.random() * 0.3
+            }}
+            animate={{
+              y: [0, -100, 0],
+              opacity: [0, 0.5, 0]
+            }}
+            transition={{
+              duration: 3 + Math.random() * 2,
+              repeat: Infinity,
+              delay: Math.random() * 2
+            }}
+          />
+        ))}
+      </div>
+
       {/* Particle System */}
       <ParticleSystem 
         trigger={particleTrigger}
@@ -455,7 +609,7 @@ export default function TasksPage() {
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          className="max-w-4xl mx-auto bg-black/60 backdrop-blur-xl border border-pink-500/50 rounded-xl p-6"
+          className="max-w-4xl mx-auto bg-black/60 backdrop-blur-xl border-2 border-pink-500 rounded-xl p-6"
         >
           <h2 className="text-lg font-light text-center mb-6 text-pink-400 tracking-wider">
             COMPLETE MISSIONS TO ENTER
@@ -485,27 +639,23 @@ export default function TasksPage() {
                     disabled={state === 'locked' || state === 'completed'}
                     className={`w-full rounded-lg p-4 text-center space-y-3 transition-all duration-300 backdrop-blur-xl ${
                       state === 'completed' 
-                        ? 'bg-green-500/10 border border-green-500/50' 
+                        ? 'bg-transparent border-2 border-green-500' 
                         : state === 'locked' 
-                          ? 'bg-gray-500/10 border border-gray-500/50 opacity-50' 
-                          : 'bg-pink-500/10 border border-pink-500/50 hover:bg-pink-500/20'
+                          ? 'bg-transparent border-2 border-gray-500 opacity-50' 
+                          : 'bg-transparent border-2 border-pink-500 hover:border-pink-400'
                     }`}
                     style={{
-                      background: state === 'completed' 
-                        ? 'rgba(43, 182, 115, 0.2)' 
-                        : state === 'locked' 
-                          ? 'rgba(100, 100, 100, 0.2)' 
-                          : 'rgba(255, 42, 109, 0.2)',
+                      background: 'transparent',
                       boxShadow: state === 'completed'
-                        ? '0 0 30px rgba(43, 182, 115, 0.7), inset 0 0 20px rgba(43, 182, 115, 0.1)'
+                        ? '0 0 20px rgba(43, 182, 115, 0.8)'
                         : state === 'locked'
-                          ? '0 0 20px rgba(100, 100, 100, 0.3)'
-                          : '0 0 30px rgba(255, 42, 109, 0.5), inset 0 0 20px rgba(255, 42, 109, 0.1)'
+                          ? '0 0 15px rgba(100, 100, 100, 0.5)'
+                          : '0 0 20px rgba(255, 42, 109, 0.6)'
                     }}
                     whileHover={state === 'active' ? { 
                       scale: 1.05,
                       y: -5,
-                      boxShadow: '0 0 40px rgba(255, 42, 109, 0.8), inset 0 0 20px rgba(255, 42, 109, 0.2)'
+                      boxShadow: '0 0 30px rgba(255, 42, 109, 1)'
                     } : {}}
                     whileTap={state === 'active' ? { scale: 0.95 } : {}}
                   >
