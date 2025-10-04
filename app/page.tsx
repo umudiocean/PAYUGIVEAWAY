@@ -17,7 +17,7 @@ export default function HomePage() {
   
   const { data: hash, writeContract } = useWriteContract()
   
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+  const { data: receipt, isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
     hash,
   })
 
@@ -31,36 +31,103 @@ export default function HomePage() {
   }, [isConnected, address])
 
   useEffect(() => {
-    if (isSuccess && hash) {
-      router.push('/tasks')
+    if (isSuccess && receipt && hash) {
+      handleTransactionSuccess(receipt, hash)
     }
-  }, [isSuccess, hash])
+  }, [isSuccess, receipt, hash])
+
+  const handleTransactionSuccess = async (receipt: any, txHash: string) => {
+    try {
+      // Parse Registered event from transaction receipt
+      const registeredEvent = receipt.logs.find((log: any) => {
+        return log.topics[0] === '0x0614e3c03549202fa6f1c69d1b1a69fd22c0b985ffd7181b54a71138d373d72c' // Registered event signature
+      })
+
+      if (registeredEvent) {
+        // Parse event data
+        const user = '0x' + registeredEvent.topics[1].slice(26) // Remove padding
+        const index = parseInt(registeredEvent.data.slice(2, 66), 16)
+        const seed = '0x' + registeredEvent.data.slice(66, 130)
+        const reward = BigInt('0x' + registeredEvent.data.slice(130, 194))
+        const timestamp = parseInt(registeredEvent.data.slice(194, 258), 16)
+
+        console.log('Parsed event data:', { user, index, seed, reward, timestamp })
+
+        // Send to backend
+        const response = await fetch('/api/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            wallet: user,
+            txHash,
+            index,
+            seed,
+            timestamp
+          })
+        })
+
+        const result = await response.json()
+        console.log('Backend response:', result)
+
+        if (result.success) {
+          router.push('/tasks')
+        } else {
+          console.error('Backend registration failed:', result.error)
+          setIsRegistering(false)
+        }
+      } else {
+        console.error('Registered event not found in transaction')
+        setIsRegistering(false)
+      }
+    } catch (error) {
+      console.error('Transaction success handling error:', error)
+      setIsRegistering(false)
+    }
+  }
 
   const handleRegister = async () => {
     setIsRegistering(true)
     
     try {
+      // Check if wallet is already registered
       const checkRes = await fetch('/api/check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ wallet: address }),
       })
+      
+      if (!checkRes.ok) {
+        throw new Error(`API check failed: ${checkRes.status}`)
+      }
+      
       const checkData = await checkRes.json()
       
       if (checkData.registered) {
+        console.log('Wallet already registered, redirecting to tasks')
         router.push('/tasks')
         return
       }
 
+      // Debug: Cüzdan ve kontrat bilgileri
+      console.log('Starting registration process:')
+      console.log('- Wallet:', address)
+      console.log('- Contract:', CONTRACT_ADDRESS)
+      console.log('- Fee:', REGISTRATION_FEE, 'wei')
+      console.log('- Already registered:', checkData.registered)
+      
+      // Call smart contract
       writeContract({
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: 'register',
         value: BigInt(REGISTRATION_FEE),
       })
+      
     } catch (error) {
       console.error('Registration error:', error)
       setIsRegistering(false)
+      // Show user-friendly error message
+      alert(`Registration failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
