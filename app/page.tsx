@@ -294,19 +294,21 @@ export default function HomePage() {
         />
       </div>
 
-      {/* Countdown Timer */}
-      <CountdownTimer />
-      
       <motion.div
         initial={{ opacity: 0, y: 50, scale: 0.9 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.8, ease: "easeOut" }}
-        className="max-w-2xl w-full glass-card neon-border rounded-2xl p-4 md:p-6 relative mx-auto"
+        className="max-w-6xl w-full h-full glass-card neon-border rounded-2xl p-4 md:p-6 relative mx-auto"
       >
-        <div className="text-center space-y-4">
+        {/* Countdown Timer positioned at top-right */}
+        <div className="absolute top-4 right-4 z-10">
+          <CountdownTimer />
+        </div>
+        {/* Main Content Area - Full Height */}
+        <div className="flex flex-col items-center justify-center h-full pt-16">
           {/* Giveaway Banner */}
           <motion.div
-            className="w-full max-w-lg mx-auto"
+            className="w-full max-w-2xl mx-auto"
             initial={{ opacity: 0, scale: 0.9, y: 30 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.8 }}
@@ -367,7 +369,7 @@ export default function HomePage() {
           </motion.div>
 
           {/* Connect Button */}
-          <div className="pt-4">
+          <div className="pt-8">
             {!isConnected ? (
               <ConnectButton.Custom>
                 {({ openConnectModal }) => (
