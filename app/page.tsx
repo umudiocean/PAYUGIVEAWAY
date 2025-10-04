@@ -298,13 +298,13 @@ export default function HomePage() {
         initial={{ opacity: 0, y: 50, scale: 0.9 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.8, ease: "easeOut" }}
-        className="max-w-3xl w-full glass-card neon-border rounded-2xl p-4 md:p-6 relative mx-auto"
+        className="max-w-4xl w-full glass-card neon-border rounded-2xl p-4 md:p-6 relative mx-auto"
       >
         {/* Main Content Area */}
         <div className="flex flex-col items-center justify-center pt-4">
-          {/* Giveaway Banner - 75% Width */}
+          {/* Giveaway Banner - Full Width */}
           <motion.div
-            className="w-3/4 mx-auto"
+            className="w-full mx-auto"
             initial={{ opacity: 0, scale: 0.9, y: 30 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.8 }}
