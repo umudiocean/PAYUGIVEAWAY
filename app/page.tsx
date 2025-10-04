@@ -70,51 +70,157 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-dark-bg flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background Neon Elements */}
+      {/* Background Squid Game Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* Large Squid Game Circle - Top Left */}
         <motion.div
-          className="absolute top-1/4 left-1/4 w-32 h-32 border border-neon-pink opacity-20 rounded-full"
+          className="absolute top-10 left-10 w-24 h-24 border-4 border-neon-pink opacity-30 rounded-full"
           animate={{ 
             rotate: 360,
-            scale: [1, 1.2, 1],
+            scale: [1, 1.3, 1],
+            opacity: [0.3, 0.6, 0.3]
+          }}
+          transition={{ 
+            rotate: { duration: 25, repeat: Infinity, ease: "linear" },
+            scale: { duration: 4, repeat: Infinity, ease: "easeInOut" },
+            opacity: { duration: 3, repeat: Infinity, ease: "easeInOut" }
+          }}
+          style={{
+            boxShadow: '0 0 30px rgba(255, 42, 109, 0.5)'
+          }}
+        />
+        
+        {/* Squid Game Triangle - Top Right */}
+        <motion.div
+          className="absolute top-16 right-16 w-20 h-20 border-4 border-neon-teal opacity-25"
+          animate={{ 
+            rotate: -360,
+            scale: [1, 1.4, 1],
+            opacity: [0.25, 0.5, 0.25]
           }}
           transition={{ 
             rotate: { duration: 20, repeat: Infinity, ease: "linear" },
-            scale: { duration: 4, repeat: Infinity, ease: "easeInOut" }
-          }}
-          style={{
-            boxShadow: '0 0 50px rgba(255, 42, 109, 0.3)'
-          }}
-        />
-        
-        <motion.div
-          className="absolute top-1/3 right-1/4 w-24 h-24 border border-neon-teal opacity-20"
-          animate={{ 
-            rotate: -360,
-            scale: [1, 1.3, 1],
-          }}
-          transition={{ 
-            rotate: { duration: 15, repeat: Infinity, ease: "linear" },
-            scale: { duration: 3, repeat: Infinity, ease: "easeInOut" }
+            scale: { duration: 3.5, repeat: Infinity, ease: "easeInOut" },
+            opacity: { duration: 2.5, repeat: Infinity, ease: "easeInOut" }
           }}
           style={{
             clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
-            boxShadow: '0 0 40px rgba(43, 182, 115, 0.3)'
+            boxShadow: '0 0 25px rgba(43, 182, 115, 0.4)'
+          }}
+        />
+        
+        {/* Squid Game Square - Bottom Left */}
+        <motion.div
+          className="absolute bottom-20 left-20 w-16 h-16 border-4 border-neon-purple opacity-20"
+          animate={{ 
+            rotate: 180,
+            scale: [1, 1.2, 1],
+            opacity: [0.2, 0.4, 0.2]
+          }}
+          transition={{ 
+            rotate: { duration: 18, repeat: Infinity, ease: "linear" },
+            scale: { duration: 4.5, repeat: Infinity, ease: "easeInOut" },
+            opacity: { duration: 3.5, repeat: Infinity, ease: "easeInOut" }
+          }}
+          style={{
+            boxShadow: '0 0 20px rgba(106, 0, 255, 0.3)'
+          }}
+        />
+        
+        {/* Small Floating Circles */}
+        <motion.div
+          className="absolute top-1/3 left-1/6 w-8 h-8 border-2 border-neon-gold opacity-40 rounded-full"
+          animate={{
+            y: [0, -30, 0],
+            x: [0, 20, 0],
+            scale: [1, 1.5, 1],
+            rotate: [0, 180, 360]
+          }}
+          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+          style={{
+            boxShadow: '0 0 15px rgba(255, 215, 0, 0.6)'
           }}
         />
         
         <motion.div
-          className="absolute bottom-1/3 left-1/3 w-20 h-20 border border-neon-purple opacity-20"
-          animate={{ 
-            rotate: 180,
-            scale: [1, 1.1, 1],
+          className="absolute bottom-1/4 right-1/6 w-6 h-6 border-2 border-neon-pink opacity-35 rounded-full"
+          animate={{
+            y: [0, -25, 0],
+            x: [0, -15, 0],
+            scale: [1, 1.3, 1],
+            rotate: [0, -180, -360]
           }}
-          transition={{ 
-            rotate: { duration: 12, repeat: Infinity, ease: "linear" },
-            scale: { duration: 5, repeat: Infinity, ease: "easeInOut" }
-          }}
+          transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 2 }}
           style={{
-            boxShadow: '0 0 30px rgba(106, 0, 255, 0.3)'
+            boxShadow: '0 0 12px rgba(255, 42, 109, 0.5)'
+          }}
+        />
+        
+        {/* Floating Triangles */}
+        <motion.div
+          className="absolute top-2/3 left-1/4 w-10 h-10 border-2 border-neon-teal opacity-30"
+          animate={{
+            y: [0, -20, 0],
+            x: [0, 25, 0],
+            scale: [1, 1.4, 1],
+            rotate: [0, 120, 240, 360]
+          }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+          style={{
+            clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
+            boxShadow: '0 0 18px rgba(43, 182, 115, 0.4)'
+          }}
+        />
+        
+        {/* Floating Squares */}
+        <motion.div
+          className="absolute bottom-1/3 right-1/3 w-12 h-12 border-2 border-neon-purple opacity-25"
+          animate={{
+            y: [0, -35, 0],
+            x: [0, -20, 0],
+            scale: [1, 1.6, 1],
+            rotate: [0, 90, 180, 270, 360]
+          }}
+          transition={{ duration: 9, repeat: Infinity, ease: "easeInOut", delay: 3 }}
+          style={{
+            boxShadow: '0 0 16px rgba(106, 0, 255, 0.3)'
+          }}
+        />
+        
+        {/* Tiny Sparkles */}
+        <motion.div
+          className="absolute top-1/5 right-1/5 w-3 h-3 bg-neon-gold opacity-60 rounded-full"
+          animate={{
+            scale: [0, 1.5, 0],
+            opacity: [0, 1, 0]
+          }}
+          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+          style={{
+            boxShadow: '0 0 10px rgba(255, 215, 0, 0.8)'
+          }}
+        />
+        
+        <motion.div
+          className="absolute bottom-1/5 left-1/5 w-2 h-2 bg-neon-pink opacity-70 rounded-full"
+          animate={{
+            scale: [0, 1.8, 0],
+            opacity: [0, 1, 0]
+          }}
+          transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+          style={{
+            boxShadow: '0 0 8px rgba(255, 42, 109, 0.9)'
+          }}
+        />
+        
+        <motion.div
+          className="absolute top-1/2 right-1/8 w-4 h-4 bg-neon-teal opacity-50 rounded-full"
+          animate={{
+            scale: [0, 1.2, 0],
+            opacity: [0, 0.8, 0]
+          }}
+          transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut", delay: 1.5 }}
+          style={{
+            boxShadow: '0 0 12px rgba(43, 182, 115, 0.7)'
           }}
         />
       </div>
