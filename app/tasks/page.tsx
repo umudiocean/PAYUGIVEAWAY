@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useAccount } from 'wagmi'
 import { useRouter } from 'next/navigation'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
+import { ParticleSystem } from '@/components/ParticleSystem'
 
 const TASKS = [
   { 
@@ -15,7 +16,8 @@ const TASKS = [
     shape: 'circle',
     color: '#FF2A6D',
     description: 'Join our community',
-    symbol: '◯'
+    symbol: '◯',
+    gradient: 'from-pink-500 to-red-500'
   },
   { 
     id: 'x', 
@@ -25,7 +27,8 @@ const TASKS = [
     shape: 'triangle',
     color: '#2BB673',
     description: 'Stay updated with news',
-    symbol: '△'
+    symbol: '△',
+    gradient: 'from-teal-500 to-green-500'
   },
   { 
     id: 'instagram', 
@@ -35,9 +38,12 @@ const TASKS = [
     shape: 'square',
     color: '#6A00FF',
     description: 'Follow our journey',
-    symbol: '⬜'
+    symbol: '⬜',
+    gradient: 'from-purple-500 to-indigo-500'
   },
 ]
+
+type TaskState = 'locked' | 'active' | 'completed'
 
 export default function TasksPage() {
   const { address, isConnected } = useAccount()
@@ -48,6 +54,12 @@ export default function TasksPage() {
   const [email, setEmail] = useState('')
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [animatingTask, setAnimatingTask] = useState<string | null>(null)
+  const [particleTrigger, setParticleTrigger] = useState(false)
+  const [taskStates, setTaskStates] = useState<Record<string, TaskState>>({
+    telegram: 'active',
+    x: 'locked',
+    instagram: 'locked'
+  })
 
   useEffect(() => {
     if (!isConnected) {
@@ -56,6 +68,21 @@ export default function TasksPage() {
     }
     loadRegistration()
   }, [isConnected, address])
+
+  useEffect(() => {
+    // Update task states based on completion
+    const newStates: Record<string, TaskState> = {}
+    TASKS.forEach((task, index) => {
+      if (completedTasks.includes(task.id)) {
+        newStates[task.id] = 'completed'
+      } else if (index === 0 || completedTasks.includes(TASKS[index - 1].id)) {
+        newStates[task.id] = 'active'
+      } else {
+        newStates[task.id] = 'locked'
+      }
+    })
+    setTaskStates(newStates)
+  }, [completedTasks])
 
   const loadRegistration = async () => {
     const res = await fetch('/api/check', {
@@ -79,21 +106,32 @@ export default function TasksPage() {
   }
 
   const handleTaskClick = async (taskId: string, url: string) => {
-    if (completedTasks.includes(taskId)) return
+    const taskIndex = TASKS.findIndex(t => t.id === taskId)
+    const currentState = taskStates[taskId]
+    
+    if (currentState === 'locked' || currentState === 'completed') return
     
     setAnimatingTask(taskId)
+    
+    // Open link
     window.open(url, '_blank')
     
+    // Simulate completion after delay
     setTimeout(async () => {
+      // Trigger particle effect
+      setParticleTrigger(true)
+      
+      // Update completion
       await fetch('/api/task', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ wallet: address, platform: taskId, url }),
       })
       
-      setCompletedTasks([...completedTasks, taskId])
+      setCompletedTasks(prev => [...prev, taskId])
       setAnimatingTask(null)
       
+      // Check if all tasks completed
       if (completedTasks.length + 1 === 3) {
         setTimeout(() => setShowEmailModal(true), 1500)
       }
@@ -114,68 +152,126 @@ export default function TasksPage() {
     loadRegistration()
   }
 
-  const getShapeComponent = (shape: string, isCompleted: boolean, isLocked: boolean, color: string) => {
-    const baseClasses = isCompleted 
-      ? 'squid-completed' 
-      : isLocked 
-        ? 'squid-locked' 
-        : 'squid-card'
+  const getCardClass = (taskId: string) => {
+    const state = taskStates[taskId]
+    switch (state) {
+      case 'locked':
+        return 'squid-card-locked'
+      case 'active':
+        return 'squid-card-active'
+      case 'completed':
+        return 'squid-card-completed'
+      default:
+        return 'squid-card'
+    }
+  }
+
+  const getShapeComponent = (task: typeof TASKS[0], state: TaskState) => {
+    const baseClasses = getCardClass(task.id)
     
-    if (shape === 'circle') {
+    if (task.shape === 'circle') {
       return (
         <div className={`squid-shape-circle ${baseClasses}`}>
-          {isCompleted ? (
-            <motion.span
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className="text-2xl"
-            >
-              ✅
-            </motion.span>
-          ) : isLocked ? (
+          {state === 'completed' ? (
+            <>
+              <motion.span
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="text-2xl z-10 relative"
+              >
+                ✅
+              </motion.span>
+              <div className="check-burst" />
+            </>
+          ) : state === 'locked' ? (
             <span className="text-xl">🔒</span>
           ) : (
-            <span className="text-xl squid-text-glow">◯</span>
+            <motion.span 
+              className="text-xl squid-text-glow"
+              animate={{ 
+                scale: [1, 1.1, 1],
+                opacity: [0.8, 1, 0.8]
+              }}
+              transition={{ 
+                duration: 1.5, 
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+            >
+              {task.symbol}
+            </motion.span>
           )}
         </div>
       )
     }
     
-    if (shape === 'triangle') {
+    if (task.shape === 'triangle') {
       return (
         <div className={`squid-shape-triangle ${baseClasses}`}>
-          {isCompleted ? (
-            <motion.span
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className="text-2xl"
-            >
-              ✅
-            </motion.span>
-          ) : isLocked ? (
+          {state === 'completed' ? (
+            <>
+              <motion.span
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="text-2xl z-10 relative"
+              >
+                ✅
+              </motion.span>
+              <div className="check-burst" />
+            </>
+          ) : state === 'locked' ? (
             <span className="text-xl">🔒</span>
           ) : (
-            <span className="text-xl squid-text-glow">△</span>
+            <motion.span 
+              className="text-xl squid-text-glow"
+              animate={{ 
+                scale: [1, 1.1, 1],
+                opacity: [0.8, 1, 0.8]
+              }}
+              transition={{ 
+                duration: 1.5, 
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+            >
+              {task.symbol}
+            </motion.span>
           )}
         </div>
       )
     }
     
-    if (shape === 'square') {
+    if (task.shape === 'square') {
       return (
         <div className={`squid-shape-square ${baseClasses}`}>
-          {isCompleted ? (
-            <motion.span
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className="text-2xl"
-            >
-              ✅
-            </motion.span>
-          ) : isLocked ? (
+          {state === 'completed' ? (
+            <>
+              <motion.span
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="text-2xl z-10 relative"
+              >
+                ✅
+              </motion.span>
+              <div className="check-burst" />
+            </>
+          ) : state === 'locked' ? (
             <span className="text-xl">🔒</span>
           ) : (
-            <span className="text-xl squid-text-glow">⬜</span>
+            <motion.span 
+              className="text-xl squid-text-glow"
+              animate={{ 
+                scale: [1, 1.1, 1],
+                opacity: [0.8, 1, 0.8]
+              }}
+              transition={{ 
+                duration: 1.5, 
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+            >
+              {task.symbol}
+            </motion.span>
           )}
         </div>
       )
@@ -198,7 +294,7 @@ export default function TasksPage() {
   }
 
   return (
-    <div className="min-h-screen bg-dark-bg pb-8 particle-bg">
+    <div className="min-h-screen bg-dark-bg pb-8 particle-bg relative overflow-hidden">
       {/* Background Squid Game Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {/* Large Background Shapes */}
@@ -244,7 +340,32 @@ export default function TasksPage() {
             opacity: { duration: 3.5, repeat: Infinity }
           }}
         />
+        
+        {/* Floating Neon Lines */}
+        <motion.div
+          className="absolute top-1/4 left-1/4 w-1 h-32 bg-gradient-to-b from-neon-pink to-transparent"
+          animate={{
+            y: [0, -50, 0],
+            opacity: [0.3, 0.8, 0.3]
+          }}
+          transition={{ duration: 3, repeat: Infinity }}
+        />
+        
+        <motion.div
+          className="absolute bottom-1/3 right-1/3 w-1 h-24 bg-gradient-to-b from-neon-teal to-transparent"
+          animate={{
+            y: [0, -30, 0],
+            opacity: [0.4, 0.9, 0.4]
+          }}
+          transition={{ duration: 2.5, repeat: Infinity, delay: 1 }}
+        />
       </div>
+
+      {/* Particle System */}
+      <ParticleSystem 
+        trigger={particleTrigger}
+        onComplete={() => setParticleTrigger(false)}
+      />
 
       {/* Header */}
       <div className="sticky top-0 z-10 glass-card border-b-2 border-neon-pink">
@@ -266,7 +387,7 @@ export default function TasksPage() {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 mt-8 space-y-8">
+      <div className="max-w-6xl mx-auto px-4 mt-8 space-y-8 relative z-10">
         {/* Ticket Display */}
         <motion.div
           initial={{ opacity: 0, y: 50 }}
@@ -305,7 +426,7 @@ export default function TasksPage() {
           </div>
         </motion.div>
 
-        {/* Progress Bar */}
+        {/* Advanced Progress Bar */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -318,17 +439,15 @@ export default function TasksPage() {
             </span>
           </div>
           
-          <div className="neon-progress h-3 rounded-full overflow-hidden">
-            <motion.div
-              className="h-full bg-gradient-to-r from-neon-pink via-neon-teal to-neon-purple rounded-full"
-              initial={{ width: 0 }}
-              animate={{ width: `${(completedTasks.length / 3) * 100}%` }}
-              transition={{ duration: 1, ease: "easeOut" }}
+          <div className="neon-progress-advanced">
+            <div 
+              className="neon-progress-fill"
+              style={{ width: `${(completedTasks.length / 3) * 100}%` }}
             />
           </div>
         </motion.div>
 
-        {/* Tasks */}
+        {/* Advanced Tasks */}
         <motion.div
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
@@ -340,8 +459,7 @@ export default function TasksPage() {
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {TASKS.map((task, index) => {
-              const isCompleted = completedTasks.includes(task.id)
-              const isLocked = index > 0 && !completedTasks.includes(TASKS[index - 1].id)
+              const state = taskStates[task.id]
               const isAnimating = animatingTask === task.id
 
               return (
@@ -357,24 +475,22 @@ export default function TasksPage() {
                     delay: index * 0.2,
                     scale: { duration: 0.3 }
                   }}
-                  className="relative"
+                  className="relative particle-container"
                 >
                   <motion.button
-                    onClick={() => !isLocked && !isCompleted && handleTaskClick(task.id, task.url)}
-                    disabled={isLocked || isCompleted}
-                    className={`w-full squid-card rounded-xl p-6 text-center space-y-4 transition-all duration-300 ${
-                      isCompleted 
-                        ? 'squid-completed cursor-default' 
-                        : isLocked 
-                          ? 'squid-locked cursor-not-allowed' 
-                          : 'cursor-pointer hover:scale-105'
-                    }`}
-                    whileHover={!isLocked && !isCompleted ? { scale: 1.05 } : {}}
-                    whileTap={!isLocked && !isCompleted ? { scale: 0.95 } : {}}
+                    onClick={() => handleTaskClick(task.id, task.url)}
+                    disabled={state === 'locked' || state === 'completed'}
+                    className={`w-full rounded-xl p-6 text-center space-y-4 transition-all duration-300 ${getCardClass(task.id)}`}
+                    whileHover={state === 'active' ? { 
+                      scale: 1.05,
+                      y: -5,
+                      rotateY: 5
+                    } : {}}
+                    whileTap={state === 'active' ? { scale: 0.95 } : {}}
                   >
                     {/* Shape Icon */}
                     <div className="flex justify-center">
-                      {getShapeComponent(task.shape, isCompleted, isLocked, task.color)}
+                      {getShapeComponent(task, state)}
                     </div>
 
                     {/* Task Info */}
@@ -389,7 +505,7 @@ export default function TasksPage() {
 
                     {/* Status */}
                     <div className="pt-2">
-                      {isCompleted ? (
+                      {state === 'completed' ? (
                         <motion.span
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
@@ -397,7 +513,7 @@ export default function TasksPage() {
                         >
                           ✓ COMPLETED
                         </motion.span>
-                      ) : isLocked ? (
+                      ) : state === 'locked' ? (
                         <span className="text-gray-500 font-bold squid-font">
                           🔒 LOCKED
                         </span>
@@ -416,8 +532,8 @@ export default function TasksPage() {
                       )}
                     </div>
 
-                    {/* Animated Border */}
-                    {!isCompleted && !isLocked && (
+                    {/* Animated Border for Active State */}
+                    {state === 'active' && (
                       <motion.div
                         className="absolute inset-0 rounded-xl border-2 border-transparent"
                         animate={{
