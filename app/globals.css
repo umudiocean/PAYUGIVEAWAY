@@ -1,4 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+@import url('https://fonts.cdnfonts.com/css/kcc-ganpan');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -194,6 +197,121 @@
       0 0 20px theme('colors.neon.pink');
   }
 
+  /* Squid Game Theme */
+  .squid-font {
+    font-family: 'KCC-Ganpan', 'Orbitron', monospace;
+    font-weight: 900;
+  }
+  
+  .squid-shape-circle {
+    width: 60px;
+    height: 60px;
+    border: 4px solid #FF2A6D;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 42, 109, 0.1);
+    box-shadow: 0 0 20px rgba(255, 42, 109, 0.5);
+    animation: neon-flicker 2s ease-in-out infinite alternate;
+  }
+  
+  .squid-shape-triangle {
+    width: 60px;
+    height: 60px;
+    border: 4px solid #2BB673;
+    clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(43, 182, 115, 0.1);
+    box-shadow: 0 0 20px rgba(43, 182, 115, 0.5);
+    animation: neon-flicker 2s ease-in-out infinite alternate;
+  }
+  
+  .squid-shape-square {
+    width: 60px;
+    height: 60px;
+    border: 4px solid #6A00FF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(106, 0, 255, 0.1);
+    box-shadow: 0 0 20px rgba(106, 0, 255, 0.5);
+    animation: neon-flicker 2s ease-in-out infinite alternate;
+  }
+  
+  .squid-card {
+    background: rgba(0, 0, 0, 0.85);
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    backdrop-filter: blur(10px);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+  
+  .squid-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, #FF2A6D, #2BB673, #6A00FF, #FFD700);
+    border-radius: inherit;
+    padding: 2px;
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    z-index: -1;
+  }
+  
+  .squid-card:hover {
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 
+      0 20px 40px rgba(0, 0, 0, 0.4),
+      0 0 30px rgba(255, 42, 109, 0.3),
+      0 0 60px rgba(43, 182, 115, 0.2);
+  }
+  
+  .squid-completed {
+    background: rgba(43, 182, 115, 0.2);
+    border-color: #2BB673;
+    box-shadow: 0 0 30px rgba(43, 182, 115, 0.7);
+  }
+  
+  .squid-completed::before {
+    background: linear-gradient(45deg, #2BB673, #3BD671, #00FF88);
+  }
+  
+  .squid-locked {
+    background: rgba(100, 100, 100, 0.2);
+    border-color: #666;
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  
+  .squid-locked::before {
+    background: linear-gradient(45deg, #666, #888, #aaa);
+  }
+  
+  .squid-text-glow {
+    text-shadow: 
+      0 0 10px rgba(255, 42, 109, 0.8),
+      0 0 20px rgba(255, 42, 109, 0.6),
+      0 0 30px rgba(255, 42, 109, 0.4);
+  }
+  
+  .squid-success-animation {
+    animation: squid-success 0.8s ease-in-out;
+  }
+  
+  @keyframes squid-success {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2) rotate(5deg); }
+    100% { transform: scale(1); }
+  }
+
   /* Mobile Optimizations */
   @media (max-width: 768px) {
     .neon-button {
@@ -202,6 +320,13 @@
     
     .slot-text {
       @apply text-2xl;
+    }
+    
+    .squid-shape-circle,
+    .squid-shape-triangle,
+    .squid-shape-square {
+      width: 50px;
+      height: 50px;
     }
   }
 }
