@@ -302,9 +302,9 @@ export default function HomePage() {
       >
         {/* Main Content Area - Full Height */}
         <div className="flex flex-col items-center justify-center h-full pt-16">
-          {/* Giveaway Banner - Full Width */}
+          {/* Giveaway Banner - 75% Width */}
           <motion.div
-            className="w-full mx-auto"
+            className="w-3/4 mx-auto"
             initial={{ opacity: 0, scale: 0.9, y: 30 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.8 }}
