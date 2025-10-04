@@ -166,116 +166,58 @@ export default function TasksPage() {
     }
   }
 
+  const getShapeClass = (shape: string) => {
+    switch (shape) {
+      case 'circle':
+        return 'squid-shape-circle'
+      case 'triangle':
+        return 'squid-shape-triangle'
+      case 'square':
+        return 'squid-shape-square'
+      default:
+        return 'squid-shape-circle'
+    }
+  }
+
   const getShapeComponent = (task: typeof TASKS[0], state: TaskState) => {
-    const baseClasses = getCardClass(task.id)
+    const shapeClass = getShapeClass(task.shape)
     
-    if (task.shape === 'circle') {
-      return (
-        <div className={`squid-shape-circle ${baseClasses}`}>
-          {state === 'completed' ? (
-            <>
-              <motion.span
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className="text-2xl z-10 relative"
-              >
-                ✅
-              </motion.span>
-              <div className="check-burst" />
-            </>
-          ) : state === 'locked' ? (
-            <span className="text-xl">🔒</span>
-          ) : (
-            <motion.span 
-              className="text-xl squid-text-glow"
-              animate={{ 
-                scale: [1, 1.1, 1],
-                opacity: [0.8, 1, 0.8]
-              }}
-              transition={{ 
-                duration: 1.5, 
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
+    return (
+      <div className={shapeClass}>
+        {state === 'completed' ? (
+          <>
+            <motion.span
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="text-3xl z-10 relative text-green-400"
             >
-              {task.symbol}
+              ✅
             </motion.span>
-          )}
-        </div>
-      )
-    }
-    
-    if (task.shape === 'triangle') {
-      return (
-        <div className={`squid-shape-triangle ${baseClasses}`}>
-          {state === 'completed' ? (
-            <>
-              <motion.span
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className="text-2xl z-10 relative"
-              >
-                ✅
-              </motion.span>
-              <div className="check-burst" />
-            </>
-          ) : state === 'locked' ? (
-            <span className="text-xl">🔒</span>
-          ) : (
-            <motion.span 
-              className="text-xl squid-text-glow"
-              animate={{ 
-                scale: [1, 1.1, 1],
-                opacity: [0.8, 1, 0.8]
-              }}
-              transition={{ 
-                duration: 1.5, 
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-            >
-              {task.symbol}
-            </motion.span>
-          )}
-        </div>
-      )
-    }
-    
-    if (task.shape === 'square') {
-      return (
-        <div className={`squid-shape-square ${baseClasses}`}>
-          {state === 'completed' ? (
-            <>
-              <motion.span
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className="text-2xl z-10 relative"
-              >
-                ✅
-              </motion.span>
-              <div className="check-burst" />
-            </>
-          ) : state === 'locked' ? (
-            <span className="text-xl">🔒</span>
-          ) : (
-            <motion.span 
-              className="text-xl squid-text-glow"
-              animate={{ 
-                scale: [1, 1.1, 1],
-                opacity: [0.8, 1, 0.8]
-              }}
-              transition={{ 
-                duration: 1.5, 
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-            >
-              {task.symbol}
-            </motion.span>
-          )}
-        </div>
-      )
-    }
+            <div className="check-burst" />
+          </>
+        ) : state === 'locked' ? (
+          <span className="text-2xl text-gray-400">🔒</span>
+        ) : (
+          <motion.span 
+            className="text-3xl text-white font-bold squid-font"
+            animate={{ 
+              scale: [1, 1.2, 1],
+              opacity: [0.8, 1, 0.8]
+            }}
+            transition={{ 
+              duration: 1.5, 
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+            style={{
+              textShadow: `0 0 20px ${task.color}, 0 0 40px ${task.color}`
+            }}
+          >
+            {task.symbol}
+          </motion.span>
+        )}
+      </div>
+    )
   }
 
   if (!registration) {
@@ -440,9 +382,11 @@ export default function TasksPage() {
           </div>
           
           <div className="neon-progress-advanced">
-            <div 
+            <motion.div 
               className="neon-progress-fill"
-              style={{ width: `${(completedTasks.length / 3) * 100}%` }}
+              initial={{ width: 0 }}
+              animate={{ width: `${(completedTasks.length / 3) * 100}%` }}
+              transition={{ duration: 1, ease: "easeOut" }}
             />
           </div>
         </motion.div>
