@@ -12,34 +12,28 @@ const TASKS = [
     id: 'telegram', 
     name: 'Join Telegram', 
     url: 'https://t.me/payu_coin', 
-    icon: '📱',
     shape: 'circle',
-    color: '#FF2A6D',
-    description: 'Join our community',
     symbol: '◯',
-    gradient: 'from-pink-500 to-red-500'
+    color: '#FF2A6D',
+    description: 'Join our community'
   },
   { 
     id: 'x', 
     name: 'Follow on X', 
     url: 'https://x.com/payu_coin', 
-    icon: '🐦',
     shape: 'triangle',
-    color: '#2BB673',
-    description: 'Stay updated with news',
     symbol: '△',
-    gradient: 'from-teal-500 to-green-500'
+    color: '#FFFFFF',
+    description: 'Stay updated with news'
   },
   { 
     id: 'instagram', 
     name: 'Follow Instagram', 
     url: 'https://www.instagram.com/payu.coin/', 
-    icon: '📸',
     shape: 'square',
-    color: '#6A00FF',
-    description: 'Follow our journey',
     symbol: '⬜',
-    gradient: 'from-purple-500 to-indigo-500'
+    color: '#FFD700',
+    description: 'Follow our journey'
   },
 ]
 
@@ -53,13 +47,14 @@ export default function TasksPage() {
   const [showEmailModal, setShowEmailModal] = useState(false)
   const [email, setEmail] = useState('')
   const [showSuccessModal, setShowSuccessModal] = useState(false)
-  const [animatingTask, setAnimatingTask] = useState<string | null>(null)
   const [particleTrigger, setParticleTrigger] = useState(false)
   const [taskStates, setTaskStates] = useState<Record<string, TaskState>>({
     telegram: 'active',
     x: 'locked',
     instagram: 'locked'
   })
+  const [revealedSteps, setRevealedSteps] = useState<number[]>([])
+  const [glitchMode, setGlitchMode] = useState(false)
 
   useEffect(() => {
     if (!isConnected) {
@@ -70,11 +65,26 @@ export default function TasksPage() {
   }, [isConnected, address])
 
   useEffect(() => {
+    // Step by step reveal
+    const timer = setTimeout(() => {
+      setRevealedSteps([0]) // İlk görev hemen açılır
+    }, 1000)
+    return () => clearTimeout(timer)
+  }, [])
+
+  useEffect(() => {
     // Update task states based on completion
     const newStates: Record<string, TaskState> = {}
     TASKS.forEach((task, index) => {
       if (completedTasks.includes(task.id)) {
         newStates[task.id] = 'completed'
+        // Sonraki görevi aç
+        if (index < TASKS.length - 1) {
+          setTimeout(() => {
+            setRevealedSteps(prev => [...prev, index + 1])
+            setTaskStates(prev => ({ ...prev, [TASKS[index + 1].id]: 'active' }))
+          }, 1500)
+        }
       } else if (index === 0 || completedTasks.includes(TASKS[index - 1].id)) {
         newStates[task.id] = 'active'
       } else {
@@ -111,7 +121,9 @@ export default function TasksPage() {
     
     if (currentState === 'locked' || currentState === 'completed') return
     
-    setAnimatingTask(taskId)
+    // Glitch effect
+    setGlitchMode(true)
+    setTimeout(() => setGlitchMode(false), 300)
     
     // Open link
     window.open(url, '_blank')
@@ -129,11 +141,10 @@ export default function TasksPage() {
       })
       
       setCompletedTasks(prev => [...prev, taskId])
-      setAnimatingTask(null)
       
       // Check if all tasks completed
       if (completedTasks.length + 1 === 3) {
-        setTimeout(() => setShowEmailModal(true), 1500)
+        setTimeout(() => setShowEmailModal(true), 2000)
       }
     }, 2000)
   }
@@ -152,69 +163,141 @@ export default function TasksPage() {
     loadRegistration()
   }
 
-  const getCardClass = (taskId: string) => {
-    const state = taskStates[taskId]
-    switch (state) {
-      case 'locked':
-        return 'squid-card-locked'
-      case 'active':
-        return 'squid-card-active'
-      case 'completed':
-        return 'squid-card-completed'
-      default:
-        return 'squid-card'
-    }
+  const getProgressColor = () => {
+    const progress = completedTasks.length / 3
+    if (progress === 0) return 'from-pink-500 to-pink-600'
+    if (progress <= 0.33) return 'from-pink-500 to-white'
+    if (progress <= 0.66) return 'from-white to-yellow-400'
+    return 'from-yellow-400 to-yellow-500'
   }
 
-  const getShapeClass = (shape: string) => {
-    switch (shape) {
-      case 'circle':
-        return 'squid-shape-circle'
-      case 'triangle':
-        return 'squid-shape-triangle'
-      case 'square':
-        return 'squid-shape-square'
-      default:
-        return 'squid-shape-circle'
-    }
-  }
-
-  const getShapeComponent = (task: typeof TASKS[0], state: TaskState) => {
-    const shapeClass = getShapeClass(task.shape)
+  const getShapeComponent = (task: typeof TASKS[0], state: TaskState, index: number) => {
+    const isRevealed = revealedSteps.includes(index)
     
     return (
-      <div className={shapeClass}>
-        {state === 'completed' ? (
-          <>
-            <motion.span
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className="text-3xl z-10 relative text-green-400"
-            >
-              ✅
-            </motion.span>
-            <div className="check-burst" />
-          </>
-        ) : state === 'locked' ? (
-          <span className="text-2xl text-gray-400">🔒</span>
-        ) : (
-          <motion.span 
-            className="text-3xl text-white font-bold squid-font"
-            animate={{ 
-              scale: [1, 1.2, 1],
-              opacity: [0.8, 1, 0.8]
-            }}
-            transition={{ 
-              duration: 1.5, 
-              repeat: Infinity,
-              ease: "easeInOut"
-            }}
+      <div className={`flex justify-center mb-4 ${isRevealed ? 'step-reveal active' : 'step-reveal'}`}>
+        {task.shape === 'circle' && (
+          <div 
+            className={`w-24 h-24 rounded-full border-4 border-pink-500 bg-pink-500/20 flex items-center justify-center ${
+              state === 'active' ? 'shape-birth animate-pulse' : ''
+            }`}
             style={{
-              textShadow: `0 0 20px ${task.color}, 0 0 40px ${task.color}`
+              boxShadow: state === 'completed' 
+                ? '0 0 50px rgba(43, 182, 115, 1), inset 0 0 30px rgba(43, 182, 115, 0.3)'
+                : '0 0 30px #FF2A6D, inset 0 0 20px rgba(255, 42, 109, 0.3)'
             }}
           >
-            {task.symbol}
-          </motion.span>
+            {state === 'completed' ? (
+              <motion.span
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="text-4xl text-green-400"
+              >
+                ✅
+              </motion.span>
+            ) : state === 'locked' ? (
+              <span className="text-3xl text-gray-400">🔒</span>
+            ) : (
+              <motion.span 
+                className="text-4xl text-white font-bold"
+                animate={{ 
+                  scale: [1, 1.2, 1],
+                  opacity: [0.8, 1, 0.8]
+                }}
+                transition={{ 
+                  duration: 1.5, 
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+                style={{textShadow: '0 0 20px #FF2A6D'}}
+              >
+                {task.symbol}
+              </motion.span>
+            )}
+          </div>
+        )}
+        
+        {task.shape === 'triangle' && (
+          <div 
+            className={`w-24 h-24 border-4 border-white bg-white/20 flex items-center justify-center ${
+              state === 'active' ? 'shape-birth animate-pulse' : ''
+            }`}
+            style={{
+              clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
+              boxShadow: state === 'completed' 
+                ? '0 0 50px rgba(43, 182, 115, 1), inset 0 0 30px rgba(43, 182, 115, 0.3)'
+                : '0 0 30px #FFFFFF, inset 0 0 20px rgba(255, 255, 255, 0.3)'
+            }}
+          >
+            {state === 'completed' ? (
+              <motion.span
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="text-4xl text-green-400"
+              >
+                ✅
+              </motion.span>
+            ) : state === 'locked' ? (
+              <span className="text-3xl text-gray-400">🔒</span>
+            ) : (
+              <motion.span 
+                className="text-4xl text-white font-bold"
+                animate={{ 
+                  scale: [1, 1.2, 1],
+                  opacity: [0.8, 1, 0.8]
+                }}
+                transition={{ 
+                  duration: 1.5, 
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+                style={{textShadow: '0 0 20px #FFFFFF'}}
+              >
+                {task.symbol}
+              </motion.span>
+            )}
+          </div>
+        )}
+        
+        {task.shape === 'square' && (
+          <div 
+            className={`w-24 h-24 border-4 border-yellow-500 bg-yellow-500/20 flex items-center justify-center ${
+              state === 'active' ? 'golden-gate animate-pulse' : ''
+            }`}
+            style={{
+              boxShadow: state === 'completed' 
+                ? '0 0 50px rgba(43, 182, 115, 1), inset 0 0 30px rgba(43, 182, 115, 0.3)'
+                : '0 0 30px #FFD700, inset 0 0 20px rgba(255, 215, 0, 0.3)'
+            }}
+          >
+            {state === 'completed' ? (
+              <motion.span
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="text-4xl text-green-400"
+              >
+                ✅
+              </motion.span>
+            ) : state === 'locked' ? (
+              <span className="text-3xl text-gray-400">🔒</span>
+            ) : (
+              <motion.span 
+                className="text-4xl text-white font-bold"
+                animate={{ 
+                  scale: [1, 1.2, 1],
+                  opacity: [0.8, 1, 0.8]
+                }}
+                transition={{ 
+                  duration: 1.5, 
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+                style={{textShadow: '0 0 20px #FFD700'}}
+              >
+                {task.symbol}
+              </motion.span>
+            )}
+          </div>
         )}
       </div>
     )
@@ -222,87 +305,21 @@ export default function TasksPage() {
 
   if (!registration) {
     return (
-      <div className="min-h-screen bg-dark-bg flex items-center justify-center p-4">
+      <div className="min-h-screen bg-black flex items-center justify-center p-4">
         <div className="text-center">
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-            className="w-16 h-16 border-4 border-neon-pink rounded-full mx-auto mb-4"
+            className="w-16 h-16 border-4 border-pink-500 rounded-full mx-auto mb-4"
           />
-          <p className="text-white text-xl squid-font">Loading your ticket...</p>
+          <p className="text-white text-xl font-bold">Loading your ticket...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-dark-bg pb-8 particle-bg relative overflow-hidden">
-      {/* Background Squid Game Elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {/* Large Background Shapes */}
-        <motion.div
-          className="absolute top-20 left-20 w-32 h-32 border-4 border-neon-pink opacity-20 rounded-full"
-          animate={{ 
-            rotate: 360,
-            scale: [1, 1.2, 1],
-            opacity: [0.2, 0.4, 0.2]
-          }}
-          transition={{ 
-            rotate: { duration: 30, repeat: Infinity, ease: "linear" },
-            scale: { duration: 4, repeat: Infinity },
-            opacity: { duration: 3, repeat: Infinity }
-          }}
-        />
-        
-        <motion.div
-          className="absolute top-32 right-32 w-24 h-24 border-4 border-neon-teal opacity-25"
-          animate={{ 
-            rotate: -360,
-            scale: [1, 1.3, 1],
-            opacity: [0.25, 0.5, 0.25]
-          }}
-          transition={{ 
-            rotate: { duration: 25, repeat: Infinity, ease: "linear" },
-            scale: { duration: 3.5, repeat: Infinity },
-            opacity: { duration: 2.5, repeat: Infinity }
-          }}
-          style={{ clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)' }}
-        />
-        
-        <motion.div
-          className="absolute bottom-40 left-40 w-20 h-20 border-4 border-neon-purple opacity-20"
-          animate={{ 
-            rotate: 180,
-            scale: [1, 1.4, 1],
-            opacity: [0.2, 0.4, 0.2]
-          }}
-          transition={{ 
-            rotate: { duration: 20, repeat: Infinity, ease: "linear" },
-            scale: { duration: 4.5, repeat: Infinity },
-            opacity: { duration: 3.5, repeat: Infinity }
-          }}
-        />
-        
-        {/* Floating Neon Lines */}
-        <motion.div
-          className="absolute top-1/4 left-1/4 w-1 h-32 bg-gradient-to-b from-neon-pink to-transparent"
-          animate={{
-            y: [0, -50, 0],
-            opacity: [0.3, 0.8, 0.3]
-          }}
-          transition={{ duration: 3, repeat: Infinity }}
-        />
-        
-        <motion.div
-          className="absolute bottom-1/3 right-1/3 w-1 h-24 bg-gradient-to-b from-neon-teal to-transparent"
-          animate={{
-            y: [0, -30, 0],
-            opacity: [0.4, 0.9, 0.4]
-          }}
-          transition={{ duration: 2.5, repeat: Infinity, delay: 1 }}
-        />
-      </div>
-
+    <div className={`min-h-screen bg-black pb-8 relative overflow-hidden ${glitchMode ? 'glitch-transition' : ''}`}>
       {/* Particle System */}
       <ParticleSystem 
         trigger={particleTrigger}
@@ -310,10 +327,10 @@ export default function TasksPage() {
       />
 
       {/* Header */}
-      <div className="sticky top-0 z-10 glass-card border-b-2 border-neon-pink">
+      <div className="sticky top-0 z-10 bg-black/90 backdrop-blur-md border-b-2 border-pink-500">
         <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
           <motion.h1 
-            className="text-2xl md:text-3xl font-bold squid-font squid-text-glow"
+            className="text-2xl md:text-3xl font-bold text-white"
             animate={{ 
               textShadow: [
                 '0 0 10px rgba(255, 42, 109, 0.8)',
@@ -334,10 +351,13 @@ export default function TasksPage() {
         <motion.div
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
-          className="squid-card rounded-2xl p-8 text-center squid-glow"
+          className="bg-black/80 backdrop-blur-md border-2 border-pink-500 rounded-2xl p-8 text-center"
+          style={{
+            boxShadow: '0 0 30px rgba(255, 42, 109, 0.3), inset 0 0 20px rgba(255, 42, 109, 0.1)'
+          }}
         >
           <motion.h2 
-            className="text-2xl md:text-3xl font-bold squid-font squid-text-glow mb-6"
+            className="text-2xl md:text-3xl font-bold mb-6 text-yellow-400"
             animate={{ 
               textShadow: [
                 '0 0 15px rgba(255, 215, 0, 0.8)',
@@ -354,9 +374,12 @@ export default function TasksPage() {
             initial={{ scale: 0.8 }}
             animate={{ scale: 1 }}
             transition={{ type: "spring", stiffness: 200 }}
-            className="bg-dark-card rounded-xl p-6 mb-4 squid-glow"
+            className="bg-black/60 rounded-xl p-6 mb-4"
+            style={{
+              boxShadow: '0 0 30px rgba(255, 42, 109, 0.3)'
+            }}
           >
-            <p className="text-4xl md:text-5xl font-mono font-bold text-white tracking-wider break-all squid-font">
+            <p className="text-4xl md:text-5xl font-mono font-bold text-white tracking-wider break-all">
               {registration.ticket}
             </p>
           </motion.div>
@@ -364,62 +387,64 @@ export default function TasksPage() {
           <div className="space-y-2 text-white/80">
             <p className="text-lg">✅ 250M PAYU received</p>
             <p className="text-sm">Registered: {new Date(registration.createdAt).toLocaleString()}</p>
-            <p className="text-sm squid-font">Keep this ticket safe!</p>
+            <p className="text-sm font-bold">Keep this ticket safe!</p>
           </div>
         </motion.div>
 
-        {/* Advanced Progress Bar */}
+        {/* Dynamic Progress Bar */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          className="squid-card rounded-xl p-6"
+          className="bg-black/80 backdrop-blur-md border-2 border-pink-500 rounded-xl p-6"
         >
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-bold squid-font squid-text-glow">MISSION PROGRESS</h3>
-            <span className="text-lg font-bold text-neon-gold">
+            <h3 className="text-xl font-bold text-white">MISSION PROGRESS</h3>
+            <span className="text-lg font-bold text-yellow-400">
               {completedTasks.length}/3
             </span>
           </div>
           
-          <div className="neon-progress-advanced">
+          <div className="relative h-4 bg-black/50 rounded-full overflow-hidden">
             <motion.div 
-              className="neon-progress-fill"
+              className={`h-full bg-gradient-to-r ${getProgressColor()} rounded-full`}
               initial={{ width: 0 }}
               animate={{ width: `${(completedTasks.length / 3) * 100}%` }}
               transition={{ duration: 1, ease: "easeOut" }}
+              style={{
+                boxShadow: '0 0 20px currentColor'
+              }}
             />
           </div>
         </motion.div>
 
-        {/* Advanced Tasks */}
+        {/* Cinematic Tasks */}
         <motion.div
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
-          className="squid-card rounded-2xl p-8"
+          className="bg-black/80 backdrop-blur-md border-2 border-pink-500 rounded-2xl p-8"
         >
-          <h2 className="text-2xl md:text-3xl font-bold text-center squid-font squid-text-glow mb-8">
+          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8 text-white">
             COMPLETE MISSIONS TO ENTER
           </h2>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {TASKS.map((task, index) => {
               const state = taskStates[task.id]
-              const isAnimating = animatingTask === task.id
+              const isRevealed = revealedSteps.includes(index)
 
               return (
                 <motion.div
                   key={task.id}
                   initial={{ opacity: 0, y: 50 }}
                   animate={{ 
-                    opacity: 1, 
-                    y: 0,
-                    scale: isAnimating ? 1.1 : 1
+                    opacity: isRevealed ? 1 : 0,
+                    y: isRevealed ? 0 : 50
                   }}
                   transition={{ 
-                    delay: index * 0.2,
-                    scale: { duration: 0.3 }
+                    delay: index * 0.5,
+                    duration: 0.8
                   }}
-                  className="relative particle-container"
+                  className="relative"
                 >
                   <motion.button
                     onClick={() => handleTaskClick(task.id, task.url)}
@@ -450,46 +475,12 @@ export default function TasksPage() {
                     } : {}}
                     whileTap={state === 'active' ? { scale: 0.95 } : {}}
                   >
-                    {/* Shape Icon */}
-                    <div className="flex justify-center mb-4">
-                      {task.shape === 'circle' && (
-                        <div className="w-20 h-20 rounded-full border-4 border-pink-500 bg-pink-500/20 flex items-center justify-center animate-pulse" style={{boxShadow: '0 0 30px #FF2A6D, inset 0 0 20px rgba(255, 42, 109, 0.3)'}}>
-                          {state === 'completed' ? (
-                            <span className="text-3xl text-green-400">✅</span>
-                          ) : state === 'locked' ? (
-                            <span className="text-2xl text-gray-400">🔒</span>
-                          ) : (
-                            <span className="text-3xl text-white font-bold" style={{textShadow: '0 0 20px #FF2A6D'}}>◯</span>
-                          )}
-                        </div>
-                      )}
-                      {task.shape === 'triangle' && (
-                        <div className="w-20 h-20 border-4 border-teal-500 bg-teal-500/20 flex items-center justify-center animate-pulse" style={{clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)', boxShadow: '0 0 30px #2BB673, inset 0 0 20px rgba(43, 182, 115, 0.3)'}}>
-                          {state === 'completed' ? (
-                            <span className="text-3xl text-green-400">✅</span>
-                          ) : state === 'locked' ? (
-                            <span className="text-2xl text-gray-400">🔒</span>
-                          ) : (
-                            <span className="text-3xl text-white font-bold" style={{textShadow: '0 0 20px #2BB673'}}>△</span>
-                          )}
-                        </div>
-                      )}
-                      {task.shape === 'square' && (
-                        <div className="w-20 h-20 border-4 border-purple-500 bg-purple-500/20 flex items-center justify-center animate-pulse" style={{boxShadow: '0 0 30px #6A00FF, inset 0 0 20px rgba(106, 0, 255, 0.3)'}}>
-                          {state === 'completed' ? (
-                            <span className="text-3xl text-green-400">✅</span>
-                          ) : state === 'locked' ? (
-                            <span className="text-2xl text-gray-400">🔒</span>
-                          ) : (
-                            <span className="text-3xl text-white font-bold" style={{textShadow: '0 0 20px #6A00FF'}}>⬜</span>
-                          )}
-                        </div>
-                      )}
-                    </div>
+                    {/* Cinematic Shape */}
+                    {getShapeComponent(task, state, index)}
 
                     {/* Task Info */}
                     <div className="space-y-2">
-                      <h3 className="text-lg md:text-xl font-bold squid-font text-white">
+                      <h3 className="text-lg md:text-xl font-bold text-white">
                         {task.name}
                       </h3>
                       <p className="text-sm text-white/70">
@@ -503,43 +494,20 @@ export default function TasksPage() {
                         <motion.span
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
-                          className="text-neon-teal font-bold squid-font"
+                          className="text-green-400 font-bold"
                         >
                           ✓ COMPLETED
                         </motion.span>
                       ) : state === 'locked' ? (
-                        <span className="text-gray-500 font-bold squid-font">
+                        <span className="text-gray-500 font-bold">
                           🔒 LOCKED
                         </span>
-                      ) : isAnimating ? (
-                        <motion.div
-                          animate={{ opacity: [0.5, 1, 0.5] }}
-                          transition={{ duration: 0.5, repeat: Infinity }}
-                          className="text-neon-pink font-bold squid-font"
-                        >
-                          ⚡ PROCESSING...
-                        </motion.div>
                       ) : (
-                        <span className="text-neon-pink font-bold squid-font hover:text-white transition-colors">
+                        <span className="text-pink-400 font-bold hover:text-white transition-colors">
                           CLICK TO COMPLETE
                         </span>
                       )}
                     </div>
-
-                    {/* Animated Border for Active State */}
-                    {state === 'active' && (
-                      <motion.div
-                        className="absolute inset-0 rounded-xl border-2 border-transparent"
-                        animate={{
-                          borderColor: [
-                            'rgba(255, 42, 109, 0)',
-                            'rgba(255, 42, 109, 0.8)',
-                            'rgba(255, 42, 109, 0)'
-                          ]
-                        }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                      />
-                    )}
                   </motion.button>
                 </motion.div>
               )
@@ -562,7 +530,10 @@ export default function TasksPage() {
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.8, opacity: 0 }}
-              className="squid-card p-8 rounded-2xl max-w-md w-full text-center squid-glow"
+              className="bg-black/90 backdrop-blur-md border-2 border-green-500 p-8 rounded-2xl max-w-md w-full text-center"
+              style={{
+                boxShadow: '0 0 50px rgba(43, 182, 115, 0.5)'
+              }}
               onClick={(e) => e.stopPropagation()}
             >
               <motion.div
@@ -573,7 +544,7 @@ export default function TasksPage() {
                 🎉
               </motion.div>
               
-              <h2 className="text-3xl font-bold squid-font squid-text-glow mb-4">
+              <h2 className="text-3xl font-bold mb-4 text-white">
                 CONGRATULATIONS!
               </h2>
               
@@ -586,14 +557,14 @@ export default function TasksPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="your.email@example.com"
-                className="w-full px-4 py-3 rounded-xl bg-dark-card border-2 border-neon-pink text-white placeholder-white/50 focus:outline-none focus:border-neon-teal transition-colors"
+                className="w-full px-4 py-3 rounded-xl bg-black/60 border-2 border-pink-500 text-white placeholder-white/50 focus:outline-none focus:border-green-500 transition-colors"
                 autoFocus
               />
               
               <motion.button
                 onClick={handleEmailSubmit}
                 disabled={!email}
-                className="w-full mt-4 neon-button disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full mt-4 bg-gradient-to-r from-pink-500 to-green-500 text-white font-bold py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
@@ -617,7 +588,10 @@ export default function TasksPage() {
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="squid-card p-8 rounded-2xl max-w-md w-full text-center squid-glow"
+              className="bg-black/90 backdrop-blur-md border-2 border-yellow-500 p-8 rounded-2xl max-w-md w-full text-center slot-machine-text"
+              style={{
+                boxShadow: '0 0 50px rgba(255, 215, 0, 0.5)'
+              }}
               onClick={(e) => e.stopPropagation()}
             >
               <motion.div
@@ -628,7 +602,7 @@ export default function TasksPage() {
                 🎫
               </motion.div>
               
-              <h2 className="text-4xl font-bold squid-font squid-text-glow mb-4">
+              <h2 className="text-4xl font-bold mb-4 text-yellow-400">
                 YOU'RE IN!
               </h2>
               
@@ -640,7 +614,7 @@ export default function TasksPage() {
                 {registration.email}
               </p>
               
-              <p className="text-neon-teal font-bold squid-font text-lg">
+              <p className="text-green-400 font-bold text-lg">
                 Good luck! 🍀
               </p>
             </motion.div>
