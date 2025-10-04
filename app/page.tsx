@@ -301,32 +301,32 @@ export default function HomePage() {
                 {({ openConnectModal }) => (
                   <motion.div
                     className="relative"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 1, duration: 0.8 }}
+                    initial={{ opacity: 0, scale: 0.3, y: 50 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    transition={{ delay: 1, duration: 1.2, ease: "easeOut" }}
                   >
                     <motion.button
                       onClick={openConnectModal}
                       className="neon-button text-lg md:text-xl py-4 md:py-5 px-8 md:px-10 rounded-xl hover-lift relative overflow-hidden w-full"
-                      whileHover={{ scale: 1.05 }}
+                      whileHover={{ scale: 1.08, y: -2 }}
                       whileTap={{ scale: 0.95 }}
                       animate={{
                         boxShadow: [
-                          '0 0 20px rgba(255, 42, 109, 0.5)',
-                          '0 0 40px rgba(255, 42, 109, 0.8)',
-                          '0 0 20px rgba(255, 42, 109, 0.5)'
+                          '0 0 25px rgba(255, 42, 109, 0.6)',
+                          '0 0 50px rgba(255, 42, 109, 1)',
+                          '0 0 25px rgba(255, 42, 109, 0.6)'
                         ]
                       }}
                       transition={{ duration: 2, repeat: Infinity }}
                     >
                       <div className="flex flex-col items-center space-y-1">
                         <motion.span
-                          className="relative z-10 font-bold"
+                          className="relative z-10 font-bold text-white"
                           animate={{ 
                             textShadow: [
-                              '0 0 10px rgba(255, 255, 255, 0.8)',
-                              '0 0 20px rgba(255, 255, 255, 1)',
-                              '0 0 10px rgba(255, 255, 255, 0.8)'
+                              '0 0 15px rgba(255, 255, 255, 1)',
+                              '0 0 30px rgba(255, 255, 255, 1.2)',
+                              '0 0 15px rgba(255, 255, 255, 1)'
                             ]
                           }}
                           transition={{ duration: 1.5, repeat: Infinity }}
@@ -335,12 +335,12 @@ export default function HomePage() {
                         </motion.span>
                         
                         <motion.span
-                          className="relative z-10 text-sm md:text-base font-medium opacity-90"
+                          className="relative z-10 text-sm md:text-base font-medium text-white opacity-95"
                           animate={{ 
                             textShadow: [
-                              '0 0 5px rgba(255, 255, 255, 0.6)',
-                              '0 0 10px rgba(255, 255, 255, 0.8)',
-                              '0 0 5px rgba(255, 255, 255, 0.6)'
+                              '0 0 8px rgba(255, 255, 255, 0.8)',
+                              '0 0 16px rgba(255, 255, 255, 1)',
+                              '0 0 8px rgba(255, 255, 255, 0.8)'
                             ]
                           }}
                           transition={{ duration: 1.5, repeat: Infinity, delay: 0.3 }}
@@ -351,38 +351,121 @@ export default function HomePage() {
                       
                       {/* Button Glow Effect */}
                       <motion.div
-                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
+                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
                         animate={{ x: ['-100%', '100%'] }}
-                        transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+                        transition={{ duration: 2, repeat: Infinity, repeatDelay: 2 }}
                       />
                       
-                      {/* Pulse Ring Effect */}
+                      {/* Multiple Pulse Rings */}
                       <motion.div
                         className="absolute inset-0 border-2 border-neon-pink rounded-xl"
                         animate={{
-                          scale: [1, 1.1, 1],
-                          opacity: [0.3, 0.1, 0.3]
+                          scale: [1, 1.15, 1],
+                          opacity: [0.4, 0.1, 0.4]
                         }}
-                        transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
+                        transition={{ duration: 2, repeat: Infinity, delay: 0 }}
                       />
                       
-                      {/* Corner Sparkles */}
                       <motion.div
-                        className="absolute top-2 right-2 w-2 h-2 bg-neon-gold rounded-full"
+                        className="absolute inset-0 border border-neon-gold rounded-xl"
                         animate={{
-                          scale: [0, 1, 0],
-                          opacity: [0, 1, 0]
+                          scale: [1, 1.2, 1],
+                          opacity: [0.3, 0.05, 0.3]
+                        }}
+                        transition={{ duration: 2.5, repeat: Infinity, delay: 0.5 }}
+                      />
+                      
+                      <motion.div
+                        className="absolute inset-0 border border-neon-teal rounded-xl"
+                        animate={{
+                          scale: [1, 1.25, 1],
+                          opacity: [0.2, 0.02, 0.2]
+                        }}
+                        transition={{ duration: 3, repeat: Infinity, delay: 1 }}
+                      />
+                      
+                      {/* Enhanced Corner Sparkles */}
+                      <motion.div
+                        className="absolute top-2 right-2 w-3 h-3 bg-neon-gold rounded-full"
+                        animate={{
+                          scale: [0, 1.5, 0],
+                          opacity: [0, 1, 0],
+                          rotate: [0, 360]
                         }}
                         transition={{ duration: 1.5, repeat: Infinity, delay: 0 }}
                       />
                       
                       <motion.div
-                        className="absolute bottom-2 left-2 w-1.5 h-1.5 bg-neon-teal rounded-full"
+                        className="absolute bottom-2 left-2 w-2 h-2 bg-neon-teal rounded-full"
                         animate={{
-                          scale: [0, 1, 0],
-                          opacity: [0, 1, 0]
+                          scale: [0, 1.8, 0],
+                          opacity: [0, 1, 0],
+                          rotate: [0, -360]
                         }}
                         transition={{ duration: 1.5, repeat: Infinity, delay: 0.8 }}
+                      />
+                      
+                      <motion.div
+                        className="absolute top-2 left-2 w-2 h-2 bg-neon-purple rounded-full"
+                        animate={{
+                          scale: [0, 1.3, 0],
+                          opacity: [0, 0.8, 0],
+                          rotate: [0, 180]
+                        }}
+                        transition={{ duration: 1.8, repeat: Infinity, delay: 1.2 }}
+                      />
+                      
+                      <motion.div
+                        className="absolute bottom-2 right-2 w-2.5 h-2.5 bg-neon-pink rounded-full"
+                        animate={{
+                          scale: [0, 1.6, 0],
+                          opacity: [0, 0.9, 0],
+                          rotate: [0, -180]
+                        }}
+                        transition={{ duration: 1.6, repeat: Infinity, delay: 0.4 }}
+                      />
+                      
+                      {/* Floating Particles Inside Button */}
+                      <motion.div
+                        className="absolute top-1/2 left-1/4 w-1 h-1 bg-white rounded-full"
+                        animate={{
+                          y: [0, -15, 0],
+                          x: [0, 10, 0],
+                          scale: [0, 1, 0],
+                          opacity: [0, 0.6, 0]
+                        }}
+                        transition={{ duration: 2, repeat: Infinity, delay: 0.2 }}
+                      />
+                      
+                      <motion.div
+                        className="absolute top-1/3 right-1/3 w-1.5 h-1.5 bg-neon-gold rounded-full"
+                        animate={{
+                          y: [0, -20, 0],
+                          x: [0, -8, 0],
+                          scale: [0, 1.2, 0],
+                          opacity: [0, 0.7, 0]
+                        }}
+                        transition={{ duration: 2.2, repeat: Infinity, delay: 0.6 }}
+                      />
+                      
+                      <motion.div
+                        className="absolute bottom-1/3 left-1/2 w-1 h-1 bg-neon-teal rounded-full"
+                        animate={{
+                          y: [0, -12, 0],
+                          x: [0, 15, 0],
+                          scale: [0, 1.4, 0],
+                          opacity: [0, 0.5, 0]
+                        }}
+                        transition={{ duration: 1.8, repeat: Infinity, delay: 1.4 }}
+                      />
+                      
+                      {/* Inner Glow */}
+                      <motion.div
+                        className="absolute inset-2 bg-gradient-to-br from-neon-pink/10 to-transparent rounded-lg"
+                        animate={{
+                          opacity: [0.1, 0.3, 0.1]
+                        }}
+                        transition={{ duration: 3, repeat: Infinity }}
                       />
                     </motion.button>
                   </motion.div>
