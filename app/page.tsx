@@ -115,12 +115,13 @@ export default function HomePage() {
       console.log('- Fee:', REGISTRATION_FEE, 'wei')
       console.log('- Already registered:', checkData.registered)
       
-      // Call smart contract
+      // Call smart contract with manual gas settings
       writeContract({
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: 'register',
         value: BigInt(REGISTRATION_FEE),
+        gas: BigInt(300000), // Manual gas limit
       })
       
     } catch (error) {

@@ -19,13 +19,6 @@ export const CONTRACT_ABI = [
     type: 'function',
   },
   {
-    inputs: [{ internalType: 'address', name: 'user', type: 'address' }],
-    name: 'indexOf',
-    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
     anonymous: false,
     inputs: [
       { indexed: true, internalType: 'address', name: 'user', type: 'address' },
