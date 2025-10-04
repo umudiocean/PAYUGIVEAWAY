@@ -56,7 +56,7 @@ export function CountdownTimer() {
     <motion.div
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-black/60 backdrop-blur-xl border border-pink-500/50 rounded-lg p-3 mx-auto max-w-xs relative overflow-hidden"
+      className="bg-black/60 backdrop-blur-xl border border-pink-500/50 rounded-lg p-2 mx-auto max-w-xs relative overflow-hidden"
       style={{
         boxShadow: '0 0 15px rgba(255, 42, 109, 0.3), inset 0 0 15px rgba(255, 42, 109, 0.1)'
       }}
@@ -86,7 +86,7 @@ export function CountdownTimer() {
       </div>
 
       <motion.h3 
-        className="text-xs font-light text-center mb-3 text-pink-400 tracking-wider relative z-10"
+        className="text-xs font-light text-center mb-2 text-pink-400 tracking-wider relative z-10"
         animate={{ 
           textShadow: [
             '0 0 5px rgba(255, 42, 109, 0.5)',
@@ -101,7 +101,7 @@ export function CountdownTimer() {
       
       <div className="grid grid-cols-4 gap-1 text-center relative z-10">
         <motion.div
-          className="bg-black/40 rounded-md p-2 border border-white/10 relative overflow-hidden"
+          className="bg-black/40 rounded-md p-1 border border-white/10 relative overflow-hidden"
           animate={{ 
             scale: timeLeft.days > 0 ? [1, 1.05, 1] : 1,
             rotateY: timeLeft.days > 0 ? [0, 5, -5, 0] : 0
@@ -109,7 +109,7 @@ export function CountdownTimer() {
           transition={{ duration: 1, ease: "easeInOut" }}
         >
           <motion.div 
-            className="text-lg font-mono font-bold text-white"
+            className="text-sm font-mono font-bold text-white"
             key={timeLeft.days}
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -124,7 +124,7 @@ export function CountdownTimer() {
         </motion.div>
 
         <motion.div
-          className="bg-black/40 rounded-md p-2 border border-white/10 relative overflow-hidden"
+          className="bg-black/40 rounded-md p-1 border border-white/10 relative overflow-hidden"
           animate={{ 
             scale: timeLeft.hours > 0 ? [1, 1.05, 1] : 1,
             rotateY: timeLeft.hours > 0 ? [0, 5, -5, 0] : 0
@@ -132,7 +132,7 @@ export function CountdownTimer() {
           transition={{ duration: 1, ease: "easeInOut", delay: 0.1 }}
         >
           <motion.div 
-            className="text-lg font-mono font-bold text-white"
+            className="text-sm font-mono font-bold text-white"
             key={timeLeft.hours}
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -147,7 +147,7 @@ export function CountdownTimer() {
         </motion.div>
 
         <motion.div
-          className="bg-black/40 rounded-md p-2 border border-white/10 relative overflow-hidden"
+          className="bg-black/40 rounded-md p-1 border border-white/10 relative overflow-hidden"
           animate={{ 
             scale: timeLeft.minutes > 0 ? [1, 1.05, 1] : 1,
             rotateY: timeLeft.minutes > 0 ? [0, 5, -5, 0] : 0
@@ -155,7 +155,7 @@ export function CountdownTimer() {
           transition={{ duration: 1, ease: "easeInOut", delay: 0.2 }}
         >
           <motion.div 
-            className="text-lg font-mono font-bold text-white"
+            className="text-sm font-mono font-bold text-white"
             key={timeLeft.minutes}
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -170,7 +170,7 @@ export function CountdownTimer() {
         </motion.div>
 
         <motion.div
-          className="bg-black/40 rounded-md p-2 border border-white/10 relative overflow-hidden"
+          className="bg-black/40 rounded-md p-1 border border-white/10 relative overflow-hidden"
           animate={{ 
             scale: timeLeft.seconds > 0 ? [1, 1.05, 1] : 1,
             rotateY: timeLeft.seconds > 0 ? [0, 5, -5, 0] : 0
@@ -178,7 +178,7 @@ export function CountdownTimer() {
           transition={{ duration: 1, ease: "easeInOut", delay: 0.3 }}
         >
           <motion.div 
-            className="text-lg font-mono font-bold text-white"
+            className="text-sm font-mono font-bold text-white"
             key={timeLeft.seconds}
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -194,7 +194,7 @@ export function CountdownTimer() {
       </div>
 
       {/* Mini Progress bar */}
-      <div className="mt-3">
+      <div className="mt-2">
         <div className="h-0.5 bg-black/50 rounded-full overflow-hidden">
           <motion.div
             className="h-full bg-gradient-to-r from-pink-500 to-purple-500 rounded-full"

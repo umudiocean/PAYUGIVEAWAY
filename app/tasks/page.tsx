@@ -524,7 +524,7 @@ export default function TasksPage() {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-2 sm:px-4 mt-2 sm:mt-8 space-y-2 sm:space-y-6 relative z-10">
+      <div className="max-w-6xl mx-auto px-2 sm:px-4 mt-2 sm:mt-8 space-y-1 sm:space-y-6 relative z-10">
         {/* Countdown Timer */}
         <CountdownTimer />
 
@@ -532,7 +532,7 @@ export default function TasksPage() {
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          className="max-w-lg mx-auto bg-black/60 backdrop-blur-xl border border-pink-500/50 rounded-xl p-2 sm:p-6 text-center relative overflow-hidden"
+          className="max-w-lg mx-auto bg-black/60 backdrop-blur-xl border border-pink-500/50 rounded-xl p-2 sm:p-4 text-center relative overflow-hidden"
           style={{
             boxShadow: '0 0 20px rgba(255, 42, 109, 0.2), inset 0 0 20px rgba(255, 42, 109, 0.05)',
             background: 'linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(20,20,20,0.8) 100%)'
@@ -555,7 +555,7 @@ export default function TasksPage() {
           </motion.div>
           
           <motion.h2 
-            className="text-sm font-light mb-4 text-pink-400 tracking-wider"
+            className="text-sm font-light mb-2 text-pink-400 tracking-wider"
             animate={{ 
               textShadow: [
                 '0 0 5px rgba(255, 42, 109, 0.5)',
@@ -576,7 +576,7 @@ export default function TasksPage() {
               stiffness: 300,
               delay: 0.5
             }}
-            className="bg-black/40 rounded-lg p-2 sm:p-4 mb-2 sm:mb-4 border border-white/10 relative group cursor-pointer hover:border-pink-500/50 transition-colors"
+            className="bg-black/40 rounded-lg p-2 sm:p-3 mb-2 border border-white/10 relative group cursor-pointer hover:border-pink-500/50 transition-colors"
             onClick={() => {
               navigator.clipboard.writeText(registration.ticket)
               // Show copy feedback
@@ -588,7 +588,7 @@ export default function TasksPage() {
             }}
           >
             <motion.p 
-              className="text-2xl md:text-3xl font-mono font-bold text-white tracking-wider break-all select-all"
+              className="text-lg md:text-2xl font-mono font-bold text-white tracking-wider break-all select-all"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 1, duration: 0.8 }}
@@ -611,7 +611,7 @@ export default function TasksPage() {
             </div>
           </motion.div>
           
-          <div className="space-y-1 text-white/60 text-xs">
+          <div className="space-y-0.5 text-white/60 text-xs">
             <p className="text-green-400">✅ 250M PAYU received</p>
             <p className="text-white/50">Registered: {new Date(registration.createdAt).toLocaleString()}</p>
             <motion.p 
@@ -636,7 +636,7 @@ export default function TasksPage() {
           animate={{ opacity: 1, y: 0 }}
           className="max-w-md mx-auto bg-black/60 backdrop-blur-xl border border-pink-500/50 rounded-lg p-2 sm:p-4"
         >
-          <div className="flex justify-between items-center mb-3">
+          <div className="flex justify-between items-center mb-2">
             <h3 className="text-sm font-light text-pink-400 tracking-wider">MISSION PROGRESS</h3>
             <span className="text-sm font-bold text-yellow-400">
               {Math.min(completedTasks.length, 3)}/3
