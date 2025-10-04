@@ -29,8 +29,8 @@ const TASKS = [
   },
   { 
     id: 'instagram', 
-    name: 'Follow Instagram', 
-    url: 'https://www.instagram.com/payu.coin/', 
+    name: 'Add to Story on Instagram', 
+    url: 'https://www.instagram.com/reel/DPZgFLFEWCg/?igsh=MTAwZHlsZzVoejIzZg==', 
     shape: 'square',
     symbol: '⬜',
     color: '#FFD700',
