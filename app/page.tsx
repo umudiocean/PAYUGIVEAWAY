@@ -123,12 +123,12 @@ export default function HomePage() {
         initial={{ opacity: 0, y: 50, scale: 0.9 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.8, ease: "easeOut" }}
-        className="max-w-4xl w-full glass-card neon-border rounded-2xl p-8 md:p-12 relative"
+        className="max-w-3xl w-full glass-card neon-border rounded-2xl p-6 md:p-8 relative mx-auto"
       >
-        <div className="text-center space-y-8">
+        <div className="text-center space-y-6">
           {/* Giveaway Banner */}
           <motion.div
-            className="w-full max-w-4xl mx-auto"
+            className="w-full max-w-2xl mx-auto"
             initial={{ opacity: 0, scale: 0.9, y: 30 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.8 }}
@@ -189,13 +189,13 @@ export default function HomePage() {
           </motion.div>
 
           {/* Connect Button */}
-          <div className="pt-8">
+          <div className="pt-4">
             {!isConnected ? (
               <ConnectButton.Custom>
                 {({ openConnectModal }) => (
                   <motion.button
                     onClick={openConnectModal}
-                    className="neon-button text-xl md:text-2xl py-4 md:py-6 px-8 md:px-12 rounded-xl hover-lift relative overflow-hidden"
+                    className="neon-button text-lg md:text-xl py-3 md:py-4 px-6 md:px-8 rounded-xl hover-lift relative overflow-hidden"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     animate={{
