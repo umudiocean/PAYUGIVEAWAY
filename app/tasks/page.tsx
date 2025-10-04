@@ -65,12 +65,18 @@ export default function TasksPage() {
   }, [isConnected, address])
 
   useEffect(() => {
-    // Step by step reveal
+    // Step by step reveal - show all completed tasks immediately
     const timer = setTimeout(() => {
-      setRevealedSteps([0]) // İlk görev hemen açılır
+      const completedIndexes = TASKS.map((_, index) => index).filter(index => {
+        const task = TASKS[index]
+        return completedTasks.includes(task.id)
+      })
+      
+      // Show first task and all completed tasks
+      setRevealedSteps([0, ...completedIndexes])
     }, 1000)
     return () => clearTimeout(timer)
-  }, [])
+  }, [completedTasks])
 
   useEffect(() => {
     // Update task states based on completion
@@ -175,7 +181,7 @@ export default function TasksPage() {
     const isRevealed = revealedSteps.includes(index)
     
     return (
-      <div className={`flex justify-center mb-3 ${isRevealed ? 'step-reveal active' : 'step-reveal'}`}>
+      <div className="flex justify-center mb-3">
         {task.shape === 'circle' && (
           <div 
             className={`w-16 h-16 rounded-full border-2 border-pink-500 bg-pink-500/20 flex items-center justify-center ${
@@ -200,21 +206,23 @@ export default function TasksPage() {
             ) : (
               <div className="relative">
                 <div className="w-8 h-8 rounded-full border border-white/80 bg-transparent flex items-center justify-center">
-                  <motion.span 
-                    className="text-lg text-white font-bold"
-                    animate={{ 
-                      scale: [1, 1.2, 1],
-                      opacity: [0.8, 1, 0.8]
-                    }}
-                    transition={{ 
-                      duration: 1.5, 
-                      repeat: Infinity,
-                      ease: "easeInOut"
-                    }}
-                    style={{textShadow: '0 0 20px #FF2A6D'}}
-                  >
-                    ◯
-                  </motion.span>
+                  <div className="w-5 h-5 rounded-full border border-white/60 bg-transparent flex items-center justify-center">
+                    <motion.span 
+                      className="text-sm text-white font-bold"
+                      animate={{ 
+                        scale: [1, 1.2, 1],
+                        opacity: [0.8, 1, 0.8]
+                      }}
+                      transition={{ 
+                        duration: 1.5, 
+                        repeat: Infinity,
+                        ease: "easeInOut"
+                      }}
+                      style={{textShadow: '0 0 20px #FF2A6D'}}
+                    >
+                      ◯
+                    </motion.span>
+                  </div>
                 </div>
               </div>
             )}
@@ -461,14 +469,14 @@ export default function TasksPage() {
               return (
                 <motion.div
                   key={task.id}
-                  initial={{ opacity: 0, y: 50 }}
+                  initial={{ opacity: 0, y: 30 }}
                   animate={{ 
-                    opacity: isRevealed ? 1 : 0,
-                    y: isRevealed ? 0 : 50
+                    opacity: 1,
+                    y: 0
                   }}
                   transition={{ 
-                    delay: index * 0.5,
-                    duration: 0.8
+                    delay: index * 0.2,
+                    duration: 0.6
                   }}
                   className="relative"
                 >
