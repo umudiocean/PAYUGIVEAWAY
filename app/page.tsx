@@ -300,15 +300,11 @@ export default function HomePage() {
         transition={{ duration: 0.8, ease: "easeOut" }}
         className="max-w-6xl w-full h-full glass-card neon-border rounded-2xl p-4 md:p-6 relative mx-auto"
       >
-        {/* Countdown Timer positioned at top-right */}
-        <div className="absolute top-4 right-4 z-10">
-          <CountdownTimer />
-        </div>
         {/* Main Content Area - Full Height */}
         <div className="flex flex-col items-center justify-center h-full pt-16">
-          {/* Giveaway Banner */}
+          {/* Giveaway Banner - Full Width */}
           <motion.div
-            className="w-full max-w-2xl mx-auto"
+            className="w-full mx-auto"
             initial={{ opacity: 0, scale: 0.9, y: 30 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.8 }}
@@ -368,31 +364,34 @@ export default function HomePage() {
             </div>
           </motion.div>
 
-          {/* Connect Button */}
-          <div className="pt-8">
-            {!isConnected ? (
-              <ConnectButton.Custom>
-                {({ openConnectModal }) => (
-                  <motion.div
-                    className="relative"
-                    initial={{ opacity: 0, scale: 0.3, y: 50 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    transition={{ delay: 1, duration: 1.2, ease: "easeOut" }}
-                  >
-                    <motion.button
-                      onClick={openConnectModal}
-                      className="neon-button text-lg md:text-xl py-4 md:py-5 px-8 md:px-10 rounded-xl hover-lift relative overflow-hidden w-full"
-                      whileHover={{ scale: 1.08, y: -2 }}
-                      whileTap={{ scale: 0.95 }}
-                      animate={{
-                        boxShadow: [
-                          '0 0 25px rgba(255, 42, 109, 0.6)',
-                          '0 0 50px rgba(255, 42, 109, 1)',
-                          '0 0 25px rgba(255, 42, 109, 0.6)'
-                        ]
-                      }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                    >
+          {/* Connect Button and Countdown Side by Side */}
+          <div className="pt-8 w-full">
+            <div className="flex flex-col lg:flex-row items-center justify-center gap-6 lg:gap-8">
+              {/* Connect Button */}
+              <div className="flex-1 max-w-md">
+                {!isConnected ? (
+                  <ConnectButton.Custom>
+                    {({ openConnectModal }) => (
+                      <motion.div
+                        className="relative"
+                        initial={{ opacity: 0, scale: 0.3, y: 50 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        transition={{ delay: 1, duration: 1.2, ease: "easeOut" }}
+                      >
+                        <motion.button
+                          onClick={openConnectModal}
+                          className="neon-button text-lg md:text-xl py-4 md:py-5 px-8 md:px-10 rounded-xl hover-lift relative overflow-hidden w-full"
+                          whileHover={{ scale: 1.08, y: -2 }}
+                          whileTap={{ scale: 0.95 }}
+                          animate={{
+                            boxShadow: [
+                              '0 0 25px rgba(255, 42, 109, 0.6)',
+                              '0 0 50px rgba(255, 42, 109, 1)',
+                              '0 0 25px rgba(255, 42, 109, 0.6)'
+                            ]
+                          }}
+                          transition={{ duration: 2, repeat: Infinity }}
+                        >
                       <div className="flex flex-col items-center space-y-1">
                         <motion.span
                           className="relative z-10 font-bold text-white"
@@ -540,12 +539,12 @@ export default function HomePage() {
                           opacity: [0.1, 0.3, 0.1]
                         }}
                         transition={{ duration: 3, repeat: Infinity }}
-                      />
-                    </motion.button>
-                  </motion.div>
-                )}
-              </ConnectButton.Custom>
-            ) : (
+                        />
+                      </motion.button>
+                    </motion.div>
+                  )}
+                </ConnectButton.Custom>
+              ) : (
               <motion.div
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -601,7 +600,14 @@ export default function HomePage() {
                   ))}
                 </div>
               </motion.div>
-            )}
+              )}
+              </div>
+              
+              {/* Countdown Timer */}
+              <div className="flex-1 max-w-md">
+                <CountdownTimer />
+              </div>
+            </div>
           </div>
 
         </div>
