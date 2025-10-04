@@ -299,41 +299,93 @@ export default function HomePage() {
             {!isConnected ? (
               <ConnectButton.Custom>
                 {({ openConnectModal }) => (
-                  <motion.button
-                    onClick={openConnectModal}
-                    className="neon-button text-lg md:text-xl py-3 md:py-4 px-6 md:px-8 rounded-xl hover-lift relative overflow-hidden"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    animate={{
-                      boxShadow: [
-                        '0 0 20px rgba(255, 42, 109, 0.5)',
-                        '0 0 30px rgba(255, 42, 109, 0.8)',
-                        '0 0 20px rgba(255, 42, 109, 0.5)'
-                      ]
-                    }}
-                    transition={{ duration: 2, repeat: Infinity }}
+                  <motion.div
+                    className="relative"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 1, duration: 0.8 }}
                   >
-                    <motion.span
-                      className="relative z-10"
-                      animate={{ 
-                        textShadow: [
-                          '0 0 10px rgba(255, 255, 255, 0.8)',
-                          '0 0 20px rgba(255, 255, 255, 1)',
-                          '0 0 10px rgba(255, 255, 255, 0.8)'
+                    <motion.button
+                      onClick={openConnectModal}
+                      className="neon-button text-lg md:text-xl py-4 md:py-5 px-8 md:px-10 rounded-xl hover-lift relative overflow-hidden w-full"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      animate={{
+                        boxShadow: [
+                          '0 0 20px rgba(255, 42, 109, 0.5)',
+                          '0 0 40px rgba(255, 42, 109, 0.8)',
+                          '0 0 20px rgba(255, 42, 109, 0.5)'
                         ]
                       }}
-                      transition={{ duration: 1.5, repeat: Infinity }}
+                      transition={{ duration: 2, repeat: Infinity }}
                     >
-                      JOIN THE GIVEAWAY
-                    </motion.span>
-                    
-                    {/* Button Glow Effect */}
-                    <motion.div
-                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
-                      animate={{ x: ['-100%', '100%'] }}
-                      transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
-                    />
-                  </motion.button>
+                      <div className="flex flex-col items-center space-y-1">
+                        <motion.span
+                          className="relative z-10 font-bold"
+                          animate={{ 
+                            textShadow: [
+                              '0 0 10px rgba(255, 255, 255, 0.8)',
+                              '0 0 20px rgba(255, 255, 255, 1)',
+                              '0 0 10px rgba(255, 255, 255, 0.8)'
+                            ]
+                          }}
+                          transition={{ duration: 1.5, repeat: Infinity }}
+                        >
+                          JOIN THE GIVEAWAY
+                        </motion.span>
+                        
+                        <motion.span
+                          className="relative z-10 text-sm md:text-base font-medium opacity-90"
+                          animate={{ 
+                            textShadow: [
+                              '0 0 5px rgba(255, 255, 255, 0.6)',
+                              '0 0 10px rgba(255, 255, 255, 0.8)',
+                              '0 0 5px rgba(255, 255, 255, 0.6)'
+                            ]
+                          }}
+                          transition={{ duration: 1.5, repeat: Infinity, delay: 0.3 }}
+                        >
+                          CONNECT WALLET
+                        </motion.span>
+                      </div>
+                      
+                      {/* Button Glow Effect */}
+                      <motion.div
+                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
+                        animate={{ x: ['-100%', '100%'] }}
+                        transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+                      />
+                      
+                      {/* Pulse Ring Effect */}
+                      <motion.div
+                        className="absolute inset-0 border-2 border-neon-pink rounded-xl"
+                        animate={{
+                          scale: [1, 1.1, 1],
+                          opacity: [0.3, 0.1, 0.3]
+                        }}
+                        transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
+                      />
+                      
+                      {/* Corner Sparkles */}
+                      <motion.div
+                        className="absolute top-2 right-2 w-2 h-2 bg-neon-gold rounded-full"
+                        animate={{
+                          scale: [0, 1, 0],
+                          opacity: [0, 1, 0]
+                        }}
+                        transition={{ duration: 1.5, repeat: Infinity, delay: 0 }}
+                      />
+                      
+                      <motion.div
+                        className="absolute bottom-2 left-2 w-1.5 h-1.5 bg-neon-teal rounded-full"
+                        animate={{
+                          scale: [0, 1, 0],
+                          opacity: [0, 1, 0]
+                        }}
+                        transition={{ duration: 1.5, repeat: Infinity, delay: 0.8 }}
+                      />
+                    </motion.button>
+                  </motion.div>
                 )}
               </ConnectButton.Custom>
             ) : (
