@@ -1,0 +1,207 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;900&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  body {
+    @apply bg-dark-bg text-white;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    touch-action: pan-y;
+    overscroll-behavior: none;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Mobil scroll optimize */
+  html {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Touch-friendly input */
+  input, textarea, button, select {
+    font-size: 16px !important; /* iOS zoom engelleme */
+  }
+
+  /* Mobil button hover state disable */
+  @media (hover: none) {
+    button:hover {
+      transform: none !important;
+    }
+  }
+}
+
+@layer components {
+  /* Neon Border Components */
+  .neon-border {
+    @apply border-2 border-neon-pink;
+    box-shadow: 
+      0 0 5px theme('colors.neon.pink'),
+      0 0 10px theme('colors.neon.pink'),
+      0 0 15px theme('colors.neon.pink'),
+      inset 0 0 5px rgba(255, 42, 109, 0.1);
+  }
+
+  .neon-border-teal {
+    @apply border-2 border-neon-teal;
+    box-shadow: 
+      0 0 5px theme('colors.neon.teal'),
+      0 0 10px theme('colors.neon.teal'),
+      0 0 15px theme('colors.neon.teal'),
+      inset 0 0 5px rgba(43, 182, 115, 0.1);
+  }
+
+  .neon-border-gold {
+    @apply border-2 border-neon-gold;
+    box-shadow: 
+      0 0 5px theme('colors.neon.gold'),
+      0 0 10px theme('colors.neon.gold'),
+      0 0 15px theme('colors.neon.gold'),
+      inset 0 0 5px rgba(255, 215, 0, 0.1);
+  }
+
+  /* Glassmorphism Cards */
+  .glass-card {
+    @apply bg-dark-card backdrop-blur-md;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  /* Neon Button */
+  .neon-button {
+    @apply relative px-8 py-4 bg-transparent border-2 border-neon-pink text-neon-pink font-bold uppercase tracking-wider;
+    box-shadow: 
+      0 0 10px theme('colors.neon.pink'),
+      0 0 20px theme('colors.neon.pink'),
+      0 0 40px theme('colors.neon.pink');
+    transition: all 0.3s ease;
+  }
+
+  .neon-button:hover {
+    @apply bg-neon-pink text-white;
+    box-shadow: 
+      0 0 20px theme('colors.neon.pink'),
+      0 0 40px theme('colors.neon.pink'),
+      0 0 80px theme('colors.neon.pink');
+    transform: translateY(-2px);
+  }
+
+  .neon-button:active {
+    transform: translateY(0);
+  }
+
+  /* Neon Text Glow */
+  .neon-text {
+    text-shadow: 
+      0 0 5px currentColor,
+      0 0 10px currentColor,
+      0 0 15px currentColor,
+      0 0 20px currentColor;
+  }
+
+  /* Particle Background */
+  .particle-bg {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .particle-bg::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 20% 80%, rgba(255, 42, 109, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(106, 0, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(43, 182, 115, 0.1) 0%, transparent 50%);
+    pointer-events: none;
+  }
+
+  /* Squid Game Symbols */
+  .squid-circle {
+    @apply w-8 h-8 rounded-full border-2 border-white;
+    animation: neon-flicker 2s ease-in-out infinite alternate;
+  }
+
+  .squid-triangle {
+    @apply w-8 h-8 border-2 border-white;
+    clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+    animation: neon-flicker 2s ease-in-out infinite alternate;
+  }
+
+  .squid-square {
+    @apply w-8 h-8 border-2 border-white;
+    animation: neon-flicker 2s ease-in-out infinite alternate;
+  }
+
+  /* Progress Bar Neon */
+  .neon-progress {
+    @apply relative h-2 bg-dark-card rounded-full overflow-hidden;
+  }
+
+  .neon-progress::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-r from-neon-pink to-neon-teal;
+    box-shadow: 0 0 10px currentColor;
+    animation: progress-glow 2s ease-in-out infinite alternate;
+  }
+
+  /* Slot Machine Animation */
+  .slot-text {
+    @apply font-neon text-4xl font-bold;
+    animation: slot-machine 0.5s ease-in-out;
+  }
+}
+
+@layer utilities {
+  .touch-manipulation {
+    touch-action: manipulation;
+  }
+
+  /* Custom Animations */
+  @keyframes progress-glow {
+    0% { box-shadow: 0 0 5px currentColor; }
+    100% { box-shadow: 0 0 20px currentColor, 0 0 30px currentColor; }
+  }
+
+  @keyframes neon-pulse {
+    0%, 100% { 
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% { 
+      opacity: 0.8;
+      transform: scale(1.05);
+    }
+  }
+
+  /* Hover Effects */
+  .hover-lift {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 
+      0 20px 40px rgba(0, 0, 0, 0.3),
+      0 0 20px theme('colors.neon.pink');
+  }
+
+  /* Mobile Optimizations */
+  @media (max-width: 768px) {
+    .neon-button {
+      @apply px-6 py-3 text-sm;
+    }
+    
+    .slot-text {
+      @apply text-2xl;
+    }
+  }
+}
