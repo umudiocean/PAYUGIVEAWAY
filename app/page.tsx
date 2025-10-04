@@ -301,12 +301,12 @@ export default function HomePage() {
         initial={{ opacity: 0, y: 50, scale: 0.9 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.8, ease: "easeOut" }}
-        className="max-w-3xl w-full glass-card neon-border rounded-2xl p-6 md:p-8 relative mx-auto"
+        className="max-w-2xl w-full glass-card neon-border rounded-2xl p-4 md:p-6 relative mx-auto"
       >
-        <div className="text-center space-y-6">
+        <div className="text-center space-y-4">
           {/* Giveaway Banner */}
           <motion.div
-            className="w-full max-w-2xl mx-auto"
+            className="w-full max-w-lg mx-auto"
             initial={{ opacity: 0, scale: 0.9, y: 30 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.8 }}
