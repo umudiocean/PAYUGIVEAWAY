@@ -11,14 +11,10 @@ interface TimeLeft {
 }
 
 export function CountdownTimer() {
-  // Gerçek çekiliş tarihi: Bugün saat 20:00 (bugün başlatılıyor)
+  // Gerçek çekiliş tarihi: 1 saat önce başlamış olarak ayarla (33 gün 23 saat 59 dakika 59 saniye)
   const targetDate = new Date()
-  targetDate.setHours(20, 0, 0, 0) // 20:00:00
-  
-  // Eğer şu anki saat 20:00'ı geçtiyse, yarın saat 20:00'a ayarla
-  if (targetDate.getTime() <= new Date().getTime()) {
-    targetDate.setDate(targetDate.getDate() + 1)
-  }
+  targetDate.setDate(targetDate.getDate() + 33) // 33 gün ekle
+  targetDate.setHours(23, 59, 59, 0) // 23:59:59
 
   const [timeLeft, setTimeLeft] = useState<TimeLeft>({
     days: 0,
@@ -204,7 +200,7 @@ export function CountdownTimer() {
             className="h-full bg-gradient-to-r from-pink-500 to-purple-500 rounded-full"
             initial={{ width: '100%' }}
             animate={{ 
-              width: `${((timeLeft.days * 24 * 60 * 60 + timeLeft.hours * 60 * 60 + timeLeft.minutes * 60 + timeLeft.seconds) / (24 * 60 * 60)) * 100}%`
+              width: `${((timeLeft.days * 24 * 60 * 60 + timeLeft.hours * 60 * 60 + timeLeft.minutes * 60 + timeLeft.seconds) / (33 * 24 * 60 * 60 + 23 * 60 * 60 + 59 * 60 + 59)) * 100}%`
             }}
             transition={{ duration: 1, ease: "easeOut" }}
             style={{ boxShadow: '0 0 5px currentColor' }}

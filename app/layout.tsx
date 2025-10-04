@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     maximumScale: 1,
     userScalable: false,
   },
-  themeColor: '#FF69B4',
+  themeColor: '#F7931A',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
