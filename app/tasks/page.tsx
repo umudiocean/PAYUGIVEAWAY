@@ -182,10 +182,10 @@ export default function TasksPage() {
     const isRevealed = revealedSteps.includes(index)
     
     return (
-          <div className="flex justify-center mb-1 sm:mb-3">
+          <div className="flex justify-center mb-0.5 sm:mb-2">
         {task.shape === 'circle' && (
           <div 
-            className={`w-10 h-10 sm:w-16 sm:h-16 rounded-full border-2 border-pink-500 bg-pink-500/20 flex items-center justify-center ${
+            className={`w-8 h-8 sm:w-14 sm:h-14 rounded-full border-2 border-pink-500 bg-pink-500/20 flex items-center justify-center ${
               state === 'active' ? 'shape-birth animate-pulse' : ''
             }`}
             style={{
@@ -214,8 +214,8 @@ export default function TasksPage() {
               <span className="text-lg sm:text-xl text-gray-400">🔒</span>
             ) : (
               <div className="relative">
-                <div className="w-5 h-5 sm:w-8 sm:h-8 rounded-full border border-white/80 bg-transparent flex items-center justify-center">
-                  <div className="w-3 h-3 sm:w-5 sm:h-5 rounded-full border border-white/60 bg-transparent flex items-center justify-center">
+                <div                 className="w-4 h-4 sm:w-6 sm:h-6 rounded-full border border-white/80 bg-transparent flex items-center justify-center">
+                  <div className="w-2 h-2 sm:w-4 sm:h-4 rounded-full border border-white/60 bg-transparent flex items-center justify-center">
                     <motion.span 
                       className="text-xs sm:text-sm text-white font-bold"
                       animate={{ 
@@ -240,7 +240,7 @@ export default function TasksPage() {
         
         {task.shape === 'triangle' && (
           <div 
-            className={`w-10 h-10 sm:w-16 sm:h-16 border-2 border-white bg-white/20 flex items-center justify-center ${
+            className={`w-8 h-8 sm:w-14 sm:h-14 border-2 border-white bg-white/20 flex items-center justify-center ${
               state === 'active' ? 'shape-birth animate-pulse' : ''
             }`}
             style={{
@@ -290,7 +290,7 @@ export default function TasksPage() {
         
         {task.shape === 'square' && (
           <div 
-            className={`w-10 h-10 sm:w-16 sm:h-16 border-2 border-yellow-500 bg-yellow-500/20 flex items-center justify-center ${
+            className={`w-8 h-8 sm:w-14 sm:h-14 border-2 border-yellow-500 bg-yellow-500/20 flex items-center justify-center ${
               state === 'active' ? 'golden-gate animate-pulse' : ''
             }`}
             style={{
@@ -524,7 +524,7 @@ export default function TasksPage() {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-2 sm:px-4 mt-2 sm:mt-8 space-y-1 sm:space-y-6 relative z-10">
+      <div className="max-w-6xl mx-auto px-2 sm:px-4 mt-1 sm:mt-8 space-y-0.5 sm:space-y-6 relative z-10">
         {/* Countdown Timer */}
         <CountdownTimer />
 
@@ -532,7 +532,7 @@ export default function TasksPage() {
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          className="max-w-lg mx-auto bg-black/60 backdrop-blur-xl border border-pink-500/50 rounded-xl p-2 sm:p-4 text-center relative overflow-hidden"
+          className="max-w-lg mx-auto bg-black/60 backdrop-blur-xl border border-pink-500/50 rounded-lg p-1 sm:p-3 text-center relative overflow-hidden"
           style={{
             boxShadow: '0 0 20px rgba(255, 42, 109, 0.2), inset 0 0 20px rgba(255, 42, 109, 0.05)',
             background: 'linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(20,20,20,0.8) 100%)'
@@ -555,7 +555,7 @@ export default function TasksPage() {
           </motion.div>
           
           <motion.h2 
-            className="text-sm font-light mb-2 text-pink-400 tracking-wider"
+            className="text-xs font-light mb-1 text-pink-400 tracking-wider"
             animate={{ 
               textShadow: [
                 '0 0 5px rgba(255, 42, 109, 0.5)',
@@ -576,7 +576,7 @@ export default function TasksPage() {
               stiffness: 300,
               delay: 0.5
             }}
-            className="bg-black/40 rounded-lg p-2 sm:p-3 mb-2 border border-white/10 relative group cursor-pointer hover:border-pink-500/50 transition-colors"
+            className="bg-black/40 rounded-md p-1 sm:p-2 mb-1 border border-white/10 relative group cursor-pointer hover:border-pink-500/50 transition-colors"
             onClick={() => {
               navigator.clipboard.writeText(registration.ticket)
               // Show copy feedback
@@ -588,7 +588,7 @@ export default function TasksPage() {
             }}
           >
             <motion.p 
-              className="text-lg md:text-2xl font-mono font-bold text-white tracking-wider break-all select-all"
+              className="text-sm md:text-lg font-mono font-bold text-white tracking-wider break-all select-all"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 1, duration: 0.8 }}
@@ -611,7 +611,7 @@ export default function TasksPage() {
             </div>
           </motion.div>
           
-          <div className="space-y-0.5 text-white/60 text-xs">
+          <div className="space-y-0 text-white/60 text-xs">
             <p className="text-green-400">✅ 250M PAYU received</p>
             <p className="text-white/50">Registered: {new Date(registration.createdAt).toLocaleString()}</p>
             <motion.p 
@@ -634,9 +634,9 @@ export default function TasksPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="max-w-md mx-auto bg-black/60 backdrop-blur-xl border border-pink-500/50 rounded-lg p-2 sm:p-4"
+          className="max-w-md mx-auto bg-black/60 backdrop-blur-xl border border-pink-500/50 rounded-md p-1 sm:p-3"
         >
-          <div className="flex justify-between items-center mb-2">
+          <div className="flex justify-between items-center mb-1">
             <h3 className="text-sm font-light text-pink-400 tracking-wider">MISSION PROGRESS</h3>
             <span className="text-sm font-bold text-yellow-400">
               {Math.min(completedTasks.length, 3)}/3
@@ -660,13 +660,13 @@ export default function TasksPage() {
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          className="max-w-4xl mx-auto bg-black/60 backdrop-blur-xl border-2 border-pink-500 rounded-xl p-2 sm:p-6"
+          className="max-w-4xl mx-auto bg-black/60 backdrop-blur-xl border-2 border-pink-500 rounded-lg p-1 sm:p-4"
         >
-          <h2 className="text-sm sm:text-lg font-light text-center mb-3 sm:mb-6 text-pink-400 tracking-wider">
+          <h2 className="text-xs sm:text-base font-light text-center mb-2 sm:mb-4 text-pink-400 tracking-wider">
             COMPLETE MISSIONS TO ENTER
           </h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-1 sm:gap-3">
             {TASKS.map((task, index) => {
               const state = taskStates[task.id]
               const isRevealed = revealedSteps.includes(index)
@@ -688,7 +688,7 @@ export default function TasksPage() {
                   <motion.button
                     onClick={() => handleTaskClick(task.id, task.url)}
                     disabled={state === 'locked' || state === 'completed'}
-                    className={`w-full rounded-lg p-2 sm:p-4 text-center space-y-1 sm:space-y-3 transition-all duration-300 backdrop-blur-xl ${
+                    className={`w-full rounded-md p-1 sm:p-3 text-center space-y-0.5 sm:space-y-2 transition-all duration-300 backdrop-blur-xl ${
                       state === 'completed' 
                         ? 'bg-transparent border-2 border-green-500' 
                         : state === 'locked' 
@@ -714,31 +714,31 @@ export default function TasksPage() {
                     {getShapeComponent(task, state, index)}
 
                     {/* Task Info */}
-                    <div className="space-y-0.5">
-                      <h3 className="text-xs font-bold text-white break-words">
+                    <div className="space-y-0">
+                      <h3 className="text-[10px] font-bold text-white break-words">
                         {task.name}
                       </h3>
-                      <p className="text-xs text-white/60">
+                      <p className="text-[10px] text-white/60">
                         {task.description}
                       </p>
                     </div>
 
                     {/* Status */}
-                    <div className="pt-0.5">
+                    <div className="pt-0">
                       {state === 'completed' ? (
                         <motion.span
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
-                          className="text-green-400 font-bold text-xs"
+                          className="text-green-400 font-bold text-[10px]"
                         >
                           ✓ COMPLETED
                         </motion.span>
                       ) : state === 'locked' ? (
-                        <span className="text-gray-500 font-bold text-xs">
+                        <span className="text-gray-500 font-bold text-[10px]">
                           🔒 LOCKED
                         </span>
                       ) : (
-                        <span className="text-pink-400 font-bold hover:text-white transition-colors text-xs">
+                        <span className="text-pink-400 font-bold hover:text-white transition-colors text-[10px]">
                           CLICK TO COMPLETE
                         </span>
                       )}
