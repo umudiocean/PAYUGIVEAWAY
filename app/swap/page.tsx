@@ -456,6 +456,14 @@ export default function SwapPage() {
             balance: '1.2345'
         },
         {
+            symbol: 'PAYU',
+            name: 'PAYU Token',
+            address: '0x9AeB2E6DD8d55E14292ACFCFC4077e33106e4144',
+            decimals: 18,
+            logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0x9AeB2E6DD8d55E14292ACFCFC4077e33106e4144/logo.png',
+            balance: '0.0'
+        },
+        {
             symbol: 'CAKE',
             name: 'PancakeSwap Token',
             address: '0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82',
@@ -486,13 +494,47 @@ export default function SwapPage() {
             decimals: 18,
             logo: 'https://cryptologos.cc/logos/ethereum-eth-logo.png',
             balance: '0.0'
+        },
+        {
+            symbol: 'BTCB',
+            name: 'Bitcoin BEP2',
+            address: '0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c',
+            decimals: 18,
+            logo: 'https://cryptologos.cc/logos/bitcoin-btc-logo.png',
+            balance: '0.0'
+        },
+        {
+            symbol: 'ADA',
+            name: 'Cardano Token',
+            address: '0x3EE2200Efb3400fAbB9AacF31297cBdD1d435D47',
+            decimals: 18,
+            logo: 'https://cryptologos.cc/logos/cardano-ada-logo.png',
+            balance: '0.0'
+        },
+        {
+            symbol: 'DOT',
+            name: 'Polkadot Token',
+            address: '0x7083609fCE4d1d8Dc0C979AAb8c869Ea2C873402',
+            decimals: 18,
+            logo: 'https://cryptologos.cc/logos/polkadot-new-dot-logo.png',
+            balance: '0.0'
+        },
+        {
+            symbol: 'LINK',
+            name: 'ChainLink Token',
+            address: '0xF8A0BF9cF54Bb92F17374d9e9A321E6a111a51bD',
+            decimals: 18,
+            logo: 'https://cryptologos.cc/logos/chainlink-link-logo.png',
+            balance: '0.0'
         }
     ]
 
-    const filteredTokens = popularTokens.filter(token => 
-        token.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        token.name.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+    const [customTokens, setCustomTokens] = useState<any[]>([])
+    const [isAddingCustomToken, setIsAddingCustomToken] = useState(false)
+    const [customTokenAddress, setCustomTokenAddress] = useState('')
+    const [customTokenLoading, setCustomTokenLoading] = useState(false)
+
+    const allTokens = [...popularTokens, ...customTokens]
 
     const handleQuickAmount = (percentage: number) => {
         const balance = parseFloat(fromToken.balance || '0')
@@ -527,6 +569,87 @@ export default function SwapPage() {
         setShowTokenModal(false)
         setSearchTerm('')
     }
+
+    const addCustomToken = async () => {
+        if (!customTokenAddress || customTokenAddress.length !== 42) {
+            alert('Please enter a valid contract address (42 characters)')
+            return
+        }
+
+        setCustomTokenLoading(true)
+        
+        try {
+            // Web3.js ile token bilgilerini çek
+            const Web3 = require('web3')
+            const web3 = new Web3(window.ethereum)
+            
+            // ERC20 ABI
+            const erc20ABI = [
+                {
+                    "constant": true,
+                    "inputs": [],
+                    "name": "name",
+                    "outputs": [{"name": "", "type": "string"}],
+                    "type": "function"
+                },
+                {
+                    "constant": true,
+                    "inputs": [],
+                    "name": "symbol",
+                    "outputs": [{"name": "", "type": "string"}],
+                    "type": "function"
+                },
+                {
+                    "constant": true,
+                    "inputs": [],
+                    "name": "decimals",
+                    "outputs": [{"name": "", "type": "uint8"}],
+                    "type": "function"
+                }
+            ]
+            
+            const contract = new web3.eth.Contract(erc20ABI, customTokenAddress)
+            
+            const [name, symbol, decimals] = await Promise.all([
+                contract.methods.name().call(),
+                contract.methods.symbol().call(),
+                contract.methods.decimals().call()
+            ])
+            
+            const newToken = {
+                symbol: symbol,
+                name: name,
+                address: customTokenAddress,
+                decimals: parseInt(decimals),
+                logo: `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/${customTokenAddress}/logo.png`,
+                balance: '0.0'
+            }
+            
+            // Duplicate kontrolü
+            const exists = allTokens.some(token => token.address.toLowerCase() === customTokenAddress.toLowerCase())
+            if (exists) {
+                alert('This token is already in the list')
+                return
+            }
+            
+            setCustomTokens(prev => [...prev, newToken])
+            setCustomTokenAddress('')
+            setIsAddingCustomToken(false)
+            alert(`Token ${symbol} (${name}) added successfully!`)
+            
+        } catch (error) {
+            console.error('Error adding custom token:', error)
+            alert('Error adding token. Please check the contract address.')
+        } finally {
+            setCustomTokenLoading(false)
+        }
+    }
+
+    const filteredTokens = allTokens.filter(token => 
+        token.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        token.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        token.address.toLowerCase().includes(searchTerm.toLowerCase())
+    )
 
     const handleSwap = () => {
         setLoading(true)
@@ -701,8 +824,50 @@ export default function SwapPage() {
                     <TokenSearch
                         placeholder="Search name or paste address"
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onChange={(e) => {
+                            setSearchTerm(e.target.value)
+                            if (e.target.value.length === 42 && e.target.value.startsWith('0x')) {
+                                setIsAddingCustomToken(true)
+                                setCustomTokenAddress(e.target.value)
+                            } else {
+                                setIsAddingCustomToken(false)
+                            }
+                        }}
                     />
+                    
+                    {isAddingCustomToken && (
+                        <div style={{ 
+                            background: '#353444', 
+                            borderRadius: '12px', 
+                            padding: '12px', 
+                            marginBottom: '16px',
+                            border: '1px solid #1FC7D4'
+                        }}>
+                            <div style={{ color: '#1FC7D4', fontSize: '14px', marginBottom: '8px' }}>
+                                Add Custom Token
+                            </div>
+                            <div style={{ color: '#b8add2', fontSize: '12px', marginBottom: '8px' }}>
+                                Contract: {customTokenAddress}
+                            </div>
+                            <button
+                                onClick={addCustomToken}
+                                disabled={customTokenLoading}
+                                style={{
+                                    background: '#1FC7D4',
+                                    color: '#ffffff',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    padding: '8px 16px',
+                                    fontSize: '12px',
+                                    cursor: customTokenLoading ? 'not-allowed' : 'pointer',
+                                    opacity: customTokenLoading ? 0.5 : 1
+                                }}
+                            >
+                                {customTokenLoading ? 'Adding...' : 'Add Token'}
+                            </button>
+                        </div>
+                    )}
+                    
                     <TokenList>
                         {filteredTokens.map((token, index) => (
                             <TokenItem key={index} onClick={() => handleTokenSelect(token)}>
