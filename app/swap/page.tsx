@@ -685,16 +685,54 @@ export default function SwapPage() {
                     </WalletButton>
                 ) : (
                     <>
-                        <ConnectedWallet>
-                            <span>🔗 {account.slice(0, 6)}...{account.slice(-4)}</span>
-                        </ConnectedWallet>
-
                         <TokenBox>
                             <TokenBoxHeader>
                                 <Label>From</Label>
-                                <Balance onClick={() => setFromAmount(fromBalance)}>
-                                    Balance: {parseFloat(fromBalance).toFixed(4)}
-                                </Balance>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span style={{ fontSize: '12px', color: '#B8ADD2' }}>🔗 {account?.slice(0, 6)}...{account?.slice(-4)}</span>
+                                    <div style={{ display: 'flex', gap: '4px' }}>
+                                        <button 
+                                            onClick={() => setFromAmount((parseFloat(fromBalance) * 0.25).toString())}
+                                            style={{ 
+                                                padding: '2px 6px', 
+                                                fontSize: '10px', 
+                                                background: 'transparent', 
+                                                border: 'none', 
+                                                color: '#B8ADD2',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            25%
+                                        </button>
+                                        <button 
+                                            onClick={() => setFromAmount((parseFloat(fromBalance) * 0.5).toString())}
+                                            style={{ 
+                                                padding: '2px 6px', 
+                                                fontSize: '10px', 
+                                                background: 'transparent', 
+                                                border: 'none', 
+                                                color: '#B8ADD2',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            50%
+                                        </button>
+                                        <button 
+                                            onClick={() => setFromAmount(fromBalance)}
+                                            style={{ 
+                                                padding: '2px 6px', 
+                                                fontSize: '10px', 
+                                                background: 'transparent', 
+                                                border: 'none', 
+                                                color: '#F4EEFF',
+                                                cursor: 'pointer',
+                                                fontWeight: 'bold'
+                                            }}
+                                        >
+                                            MAX
+                                        </button>
+                                    </div>
+                                </div>
                             </TokenBoxHeader>
                             <TokenInputRow>
                                 <TokenInput
@@ -709,7 +747,10 @@ export default function SwapPage() {
                                 }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                         <img src={fromToken.logo} alt={fromToken.symbol} />
-                                        <span>{fromToken.symbol}</span>
+                                        <div>
+                                            <div style={{ fontWeight: 'bold' }}>{fromToken.symbol}</div>
+                                            <div style={{ fontSize: '10px', color: '#B8ADD2' }}>BNB Chain</div>
+                                        </div>
                                     </div>
                                     <span>▼</span>
                                 </TokenSelectButton>
@@ -723,9 +764,22 @@ export default function SwapPage() {
                         <TokenBox>
                             <TokenBoxHeader>
                                 <Label>To</Label>
-                                <Balance>
-                                    Balance: {parseFloat(toBalance).toFixed(4)}
-                                </Balance>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span style={{ fontSize: '12px', color: '#B8ADD2' }}>🔗 {account?.slice(0, 6)}...{account?.slice(-4)}</span>
+                                    <button 
+                                        onClick={() => navigator.clipboard.writeText(account || '')}
+                                        style={{ 
+                                            padding: '2px', 
+                                            background: 'transparent', 
+                                            border: 'none', 
+                                            color: '#B8ADD2',
+                                            cursor: 'pointer',
+                                            fontSize: '12px'
+                                        }}
+                                    >
+                                        📋
+                                    </button>
+                                </div>
                             </TokenBoxHeader>
                             <TokenInputRow>
                                 <TokenInput
@@ -740,7 +794,10 @@ export default function SwapPage() {
                                 }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                         <img src={toToken.logo} alt={toToken.symbol} />
-                                        <span>{toToken.symbol}</span>
+                                        <div>
+                                            <div style={{ fontWeight: 'bold' }}>{toToken.symbol}</div>
+                                            <div style={{ fontSize: '10px', color: '#B8ADD2' }}>BNB Chain</div>
+                                        </div>
                                     </div>
                                     <span>▼</span>
                                 </TokenSelectButton>
@@ -753,15 +810,41 @@ export default function SwapPage() {
                                 Auto: {slippage}% ✏️
                             </SlippageValue>
                         </SettingsRow>
+                        
+                        <div style={{ 
+                            background: '#372F47', 
+                            borderRadius: '12px', 
+                            padding: '12px', 
+                            margin: '16px 0',
+                            fontSize: '12px',
+                            color: '#B8ADD2'
+                        }}>
+                            Enter an amount
+                        </div>
 
                         <MEVProtect onClick={() => setMevProtect(!mevProtect)}>
-                            <input 
-                                type="checkbox" 
-                                checked={mevProtect} 
-                                onChange={(e) => setMevProtect(e.target.checked)} 
-                            />
+                            <span style={{ fontSize: '16px' }}>🛡️</span>
                             <label>Enable MEV Protect</label>
-                            <span>🛡️</span>
+                            <div style={{ 
+                                width: '40px', 
+                                height: '20px', 
+                                background: mevProtect ? '#7645D9' : '#453A5C', 
+                                borderRadius: '10px', 
+                                position: 'relative',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s'
+                            }}>
+                                <div style={{
+                                    width: '16px',
+                                    height: '16px',
+                                    background: 'white',
+                                    borderRadius: '50%',
+                                    position: 'absolute',
+                                    top: '2px',
+                                    left: mevProtect ? '22px' : '2px',
+                                    transition: 'all 0.2s'
+                                }} />
+                            </div>
                         </MEVProtect>
 
                         <SwapButton onClick={executeSwap} disabled={!fromAmount || !toAmount || loading}>
