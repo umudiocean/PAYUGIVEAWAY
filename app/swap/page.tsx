@@ -581,12 +581,22 @@ export default function SwapPage() {
             alert('Please enter a valid contract address (42 characters)')
             return
         }
+        
+        if (!customTokenAddress.startsWith('0x')) {
+            alert('Contract address must start with 0x')
+            return
+        }
+        
+        if (!/^0x[a-fA-F0-9]{40}$/.test(customTokenAddress)) {
+            alert('Invalid contract address format')
+            return
+        }
 
         setCustomTokenLoading(true)
         
         try {
             // Web3.js ile token bilgilerini çek
-            const Web3 = require('web3')
+            const Web3 = (await import('web3')).default
             const web3 = new Web3(window.ethereum)
             
             // ERC20 ABI
@@ -616,10 +626,16 @@ export default function SwapPage() {
             
             const contract = new web3.eth.Contract(erc20ABI, customTokenAddress)
             
+            // Contract'ın geçerli olup olmadığını kontrol et
+            const code = await web3.eth.getCode(customTokenAddress)
+            if (code === '0x') {
+                throw new Error('No contract found at this address')
+            }
+            
             const [name, symbol, decimals] = await Promise.all([
-                contract.methods.name().call(),
-                contract.methods.symbol().call(),
-                contract.methods.decimals().call()
+                contract.methods.name().call().catch(() => 'Unknown Token'),
+                contract.methods.symbol().call().catch(() => 'UNKNOWN'),
+                contract.methods.decimals().call().catch(() => 18)
             ])
             
             const newToken = {
@@ -643,9 +659,21 @@ export default function SwapPage() {
             setIsAddingCustomToken(false)
             alert(`Token ${symbol} (${name}) added successfully!`)
             
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error adding custom token:', error)
-            alert('Error adding token. Please check the contract address.')
+            let errorMessage = 'Error adding token. Please check the contract address.'
+            
+            if (error.message.includes('No contract found')) {
+                errorMessage = 'No contract found at this address. Please check the contract address.'
+            } else if (error.message.includes('User denied')) {
+                errorMessage = 'Transaction was cancelled by user.'
+            } else if (error.message.includes('Invalid address')) {
+                errorMessage = 'Invalid contract address format.'
+            } else if (error.message.includes('network')) {
+                errorMessage = 'Network error. Please check your connection.'
+            }
+            
+            alert(errorMessage)
         } finally {
             setCustomTokenLoading(false)
         }
