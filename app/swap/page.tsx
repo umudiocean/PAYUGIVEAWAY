@@ -387,6 +387,12 @@ const TokenLogoImg = styled.img`
     width: 32px;
     height: 32px;
     border-radius: 50%;
+    object-fit: cover;
+    
+    &:hover {
+        transform: scale(1.1);
+        transition: transform 0.2s;
+    }
 `
 
 const TokenInfoModal = styled.div`
@@ -433,7 +439,7 @@ export default function SwapPage() {
         name: 'BNB',
         address: '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c',
         decimals: 18,
-        logo: 'https://cryptologos.cc/logos/bnb-bnb-logo.png',
+        logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c/logo.png',
         balance: '1.2345'
     })
 
@@ -442,7 +448,7 @@ export default function SwapPage() {
         name: 'PancakeSwap Token',
         address: '0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82',
         decimals: 18,
-        logo: 'https://cryptologos.cc/logos/pancakeswap-cake-logo.png',
+        logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82/logo.png',
         balance: '0.0'
     })
 
@@ -452,7 +458,7 @@ export default function SwapPage() {
             name: 'BNB',
             address: '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c',
             decimals: 18,
-            logo: 'https://cryptologos.cc/logos/bnb-bnb-logo.png',
+            logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c/logo.png',
             balance: '1.2345'
         },
         {
@@ -468,7 +474,7 @@ export default function SwapPage() {
             name: 'PancakeSwap Token',
             address: '0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82',
             decimals: 18,
-            logo: 'https://cryptologos.cc/logos/pancakeswap-cake-logo.png',
+            logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82/logo.png',
             balance: '0.0'
         },
         {
@@ -476,7 +482,7 @@ export default function SwapPage() {
             name: 'Tether USD',
             address: '0x55d398326f99059fF775485246999027B3197955',
             decimals: 18,
-            logo: 'https://cryptologos.cc/logos/tether-usdt-logo.png',
+            logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0x55d398326f99059fF775485246999027B3197955/logo.png',
             balance: '0.0'
         },
         {
@@ -484,7 +490,7 @@ export default function SwapPage() {
             name: 'USD Coin',
             address: '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d',
             decimals: 18,
-            logo: 'https://cryptologos.cc/logos/usd-coin-usdc-logo.png',
+            logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d/logo.png',
             balance: '0.0'
         },
         {
@@ -492,7 +498,7 @@ export default function SwapPage() {
             name: 'Ethereum Token',
             address: '0x2170Ed0880ac9A755fd29B2688956BD959F933F8',
             decimals: 18,
-            logo: 'https://cryptologos.cc/logos/ethereum-eth-logo.png',
+            logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0x2170Ed0880ac9A755fd29B2688956BD959F933F8/logo.png',
             balance: '0.0'
         },
         {
@@ -500,7 +506,7 @@ export default function SwapPage() {
             name: 'Bitcoin BEP2',
             address: '0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c',
             decimals: 18,
-            logo: 'https://cryptologos.cc/logos/bitcoin-btc-logo.png',
+            logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c/logo.png',
             balance: '0.0'
         },
         {
@@ -508,7 +514,7 @@ export default function SwapPage() {
             name: 'Cardano Token',
             address: '0x3EE2200Efb3400fAbB9AacF31297cBdD1d435D47',
             decimals: 18,
-            logo: 'https://cryptologos.cc/logos/cardano-ada-logo.png',
+            logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0x3EE2200Efb3400fAbB9AacF31297cBdD1d435D47/logo.png',
             balance: '0.0'
         },
         {
@@ -516,7 +522,7 @@ export default function SwapPage() {
             name: 'Polkadot Token',
             address: '0x7083609fCE4d1d8Dc0C979AAb8c869Ea2C873402',
             decimals: 18,
-            logo: 'https://cryptologos.cc/logos/polkadot-new-dot-logo.png',
+            logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0x7083609fCE4d1d8Dc0C979AAb8c869Ea2C873402/logo.png',
             balance: '0.0'
         },
         {
@@ -524,7 +530,7 @@ export default function SwapPage() {
             name: 'ChainLink Token',
             address: '0xF8A0BF9cF54Bb92F17374d9e9A321E6a111a51bD',
             decimals: 18,
-            logo: 'https://cryptologos.cc/logos/chainlink-link-logo.png',
+            logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0xF8A0BF9cF54Bb92F17374d9e9A321E6a111a51bD/logo.png',
             balance: '0.0'
         }
     ]
@@ -701,7 +707,13 @@ export default function SwapPage() {
                             setSelectingToken('from')
                             setShowTokenModal(true)
                         }}>
-                            <TokenLogoImg src={fromToken.logo} alt={fromToken.symbol} />
+                            <TokenLogoImg 
+                                src={fromToken.logo} 
+                                alt={fromToken.symbol}
+                                onError={(e) => {
+                                    e.currentTarget.src = `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/info/logo.png`
+                                }}
+                            />
                             <TokenDetails>
                                 <TokenSymbol>
                                     {fromToken.symbol}
@@ -762,7 +774,13 @@ export default function SwapPage() {
                             setSelectingToken('to')
                             setShowTokenModal(true)
                         }}>
-                            <TokenLogoImg src={toToken.logo} alt={toToken.symbol} />
+                            <TokenLogoImg 
+                                src={toToken.logo} 
+                                alt={toToken.symbol}
+                                onError={(e) => {
+                                    e.currentTarget.src = `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/info/logo.png`
+                                }}
+                            />
                             <TokenDetails>
                                 <TokenSymbol>
                                     {toToken.symbol}
@@ -871,7 +889,13 @@ export default function SwapPage() {
                     <TokenList>
                         {filteredTokens.map((token, index) => (
                             <TokenItem key={index} onClick={() => handleTokenSelect(token)}>
-                                <TokenLogoImg src={token.logo} alt={token.symbol} />
+                                <TokenLogoImg 
+                                    src={token.logo} 
+                                    alt={token.symbol}
+                                    onError={(e) => {
+                                        e.currentTarget.src = `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/info/logo.png`
+                                    }}
+                                />
                                 <TokenInfoModal>
                                     <TokenSymbolModal>{token.symbol}</TokenSymbolModal>
                                     <TokenNameModal>{token.name}</TokenNameModal>
