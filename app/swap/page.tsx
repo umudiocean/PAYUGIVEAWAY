@@ -1,555 +1,820 @@
-'use client'
+'use client';
 
-import React, { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
-import { useAccount } from 'wagmi'
-import { ConnectButton } from '@rainbow-me/rainbowkit'
+import React, { useState, useEffect } from 'react';
+import Web3 from 'web3';
+import styled from 'styled-components';
+
+// ==================== TYPE DEFINITIONS ====================
+interface Token {
+    symbol: string;
+    name: string;
+    address: string;
+    decimals: number;
+    logo: string;
+    balance?: string;
+}
+
+interface ContractMethod {
+    call: () => Promise<any>;
+    send: (options: { from: string; value?: string; gas?: number }) => Promise<any>;
+}
+
+interface ERC20Contract {
+    methods: {
+        balanceOf: (address: string) => ContractMethod;
+        allowance: (owner: string, spender: string) => ContractMethod;
+        approve: (spender: string, amount: string) => ContractMethod;
+    };
+}
+
+interface SwapContract {
+    methods: {
+        getAmountsOut: (amountIn: string, path: string[]) => ContractMethod;
+        swapExactBNBForTokens: (tokenOut: string, amountOutMin: string, deadline: number) => ContractMethod;
+        swapExactTokensForBNB: (tokenIn: string, amountIn: string, amountOutMin: string, deadline: number) => ContractMethod;
+        swapExactTokensForTokens: (tokenIn: string, tokenOut: string, amountIn: string, amountOutMin: string, deadline: number) => ContractMethod;
+    };
+}
 
 // ==================== CONTRACT SETUP ====================
-const PAYPAYUSWAP_ADDRESS = "0x669f9b0D21c15a608c5309e0B964c165FB428962"
-const PLATFORM_FEE = "0.00025"
-const WBNB = "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c"
+const PAYPAYUSWAP_ADDRESS = "0x669f9b0D21c15a608c5309e0B964c165FB428962";
+const PLATFORM_FEE = "0.00025";
+const WBNB = "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c";
 
 const PAYPAYUSWAP_ABI = [
     {"inputs":[{"internalType":"address","name":"tokenOut","type":"address"},{"internalType":"uint256","name":"amountOutMin","type":"uint256"},{"internalType":"uint256","name":"deadline","type":"uint256"}],"name":"swapExactBNBForTokens","outputs":[{"internalType":"uint256[]","name":"amounts","type":"uint256[]"}],"stateMutability":"payable","type":"function"},
     {"inputs":[{"internalType":"address","name":"tokenIn","type":"address"},{"internalType":"uint256","name":"amountIn","type":"uint256"},{"internalType":"uint256","name":"amountOutMin","type":"uint256"},{"internalType":"uint256","name":"deadline","type":"uint256"}],"name":"swapExactTokensForBNB","outputs":[{"internalType":"uint256[]","name":"amounts","type":"uint256[]"}],"stateMutability":"payable","type":"function"},
     {"inputs":[{"internalType":"address","name":"tokenIn","type":"address"},{"internalType":"address","name":"tokenOut","type":"address"},{"internalType":"uint256","name":"amountIn","type":"uint256"},{"internalType":"uint256","name":"amountOutMin","type":"uint256"},{"internalType":"uint256","name":"deadline","type":"uint256"}],"name":"swapExactTokensForTokens","outputs":[{"internalType":"uint256[]","name":"amounts","type":"uint256[]"}],"stateMutability":"payable","type":"function"},
     {"inputs":[{"internalType":"uint256","name":"amountIn","type":"uint256"},{"internalType":"address[]","name":"path","type":"address[]"}],"name":"getAmountsOut","outputs":[{"internalType":"uint256[]","name":"amounts","type":"uint256[]"}],"stateMutability":"view","type":"function"}
-]
+];
 
 const ERC20_ABI = [
     {"inputs":[{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"approve","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"},
     {"inputs":[{"internalType":"address","name":"owner","type":"address"},{"internalType":"address","name":"spender","type":"address"}],"name":"allowance","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
     {"inputs":[{"internalType":"address","name":"account","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}
-]
+];
 
-const TOKEN_LIST = [
+const TOKEN_LIST: Token[] = [
     { symbol: "BNB", name: "BNB", address: WBNB, decimals: 18, logo: "https://tokens.pancakeswap.finance/images/symbol/bnb.png" },
     { symbol: "PAYU", name: "PayU Token", address: "0x9AeB2E6DD8d55E14292ACFCFC4077e33106e4144", decimals: 18, logo: "https://via.placeholder.com/32/7645D9/FFFFFF?text=PAYU" },
     { symbol: "CAKE", name: "PancakeSwap Token", address: "0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82", decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82.png" },
     { symbol: "BUSD", name: "Binance USD", address: "0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56", decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56.png" },
     { symbol: "USDT", name: "Tether USD", address: "0x55d398326f99059fF775485246999027B3197955", decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0x55d398326f99059fF775485246999027B3197955.png" }
-]
+];
 
-export default function SwapPage() {
-    const { address, isConnected } = useAccount()
-    const [web3, setWeb3] = useState<any>(null)
-    const [contract, setContract] = useState<any>(null)
-    
-    const [fromToken, setFromToken] = useState(TOKEN_LIST[0])
-    const [toToken, setToToken] = useState(TOKEN_LIST[1])
-    const [fromAmount, setFromAmount] = useState('')
-    const [toAmount, setToAmount] = useState('')
-    const [fromBalance, setFromBalance] = useState('0')
-    const [toBalance, setToBalance] = useState('0')
-    
-    const [loading, setLoading] = useState(false)
-    const [slippage, setSlippage] = useState(0.5)
-    const [showTokenModal, setShowTokenModal] = useState(false)
-    const [selectingToken, setSelectingToken] = useState('from')
-    const [showSlippageModal, setShowSlippageModal] = useState(false)
-    const [mevProtect, setMevProtect] = useState(false)
-    const [error, setError] = useState('')
-    const [success, setSuccess] = useState('')
+// ==================== STYLED COMPONENTS (DARK MODE ONLY) ====================
+const Container = styled.div`
+    min-height: 100vh;
+    background: linear-gradient(139.73deg, rgb(8, 6, 22) 0%, rgb(15, 12, 35) 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+`;
 
-    useEffect(() => {
-        if (isConnected && window.ethereum) {
-            initializeWeb3()
-        }
-    }, [isConnected])
+const SwapCard = styled.div`
+    background: #27262c;
+    border-radius: 32px;
+    width: 100%;
+    max-width: 440px;
+    padding: 24px;
+    box-shadow: 0px 0px 1px rgba(0, 0, 0, 0.01), 0px 4px 8px rgba(0, 0, 0, 0.04), 0px 16px 24px rgba(0, 0, 0, 0.04), 0px 24px 32px rgba(0, 0, 0, 0.01);
+`;
 
-    useEffect(() => {
-        if (address && fromToken) updateBalance(fromToken, setFromBalance)
-    }, [address, fromToken])
+const SwapHeader = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+`;
 
-    useEffect(() => {
-        if (address && toToken) updateBalance(toToken, setToBalance)
-    }, [address, toToken])
+const SwapTitle = styled.h2`
+    font-size: 24px;
+    font-weight: 700;
+    color: #F4EEFF;
+`;
 
-    useEffect(() => {
-        if (fromAmount && fromToken && toToken) {
-            getQuote()
-        } else {
-            setToAmount('')
-        }
-    }, [fromAmount, fromToken, toToken])
+const SettingsIcon = styled.button`
+    width: 32px;
+    height: 32px;
+    background: #372F47;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: #B8ADD2;
+    transition: all 0.2s;
 
-    const initializeWeb3 = async () => {
-        try {
-            const Web3 = (await import('web3')).default
-            const web3Instance = new Web3(window.ethereum)
-            const contractInstance = new web3Instance.eth.Contract(PAYPAYUSWAP_ABI, PAYPAYUSWAP_ADDRESS)
-            
-            setWeb3(web3Instance)
-            setContract(contractInstance)
-        } catch (error) {
-            console.error('Web3 initialization error:', error)
-        }
+    &:hover {
+        background: #453A5C;
+        color: #F4EEFF;
+    }
+`;
+
+const WalletButton = styled.button`
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(270deg, #7645D9 0%, #5121B1 100%);
+    color: white;
+    border: none;
+    border-radius: 16px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0px 4px 12px rgba(118, 69, 217, 0.4);
+    }
+`;
+
+const ConnectedWallet = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: #372F47;
+    border-radius: 12px;
+    margin-bottom: 16px;
+    font-size: 14px;
+    color: #F4EEFF;
+`;
+
+const TokenBox = styled.div`
+    background: #372F47;
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 8px;
+`;
+
+const TokenBoxHeader = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+`;
+
+const Label = styled.span`
+    font-size: 14px;
+    color: #B8ADD2;
+    font-weight: 600;
+`;
+
+const Balance = styled.span`
+    font-size: 14px;
+    color: #B8ADD2;
+    cursor: pointer;
+
+    &:hover {
+        color: #F4EEFF;
+    }
+`;
+
+const TokenInputRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 12px;
+`;
+
+const TokenInput = styled.input`
+    flex: 1;
+    background: transparent;
+    border: none;
+    font-size: 24px;
+    font-weight: 600;
+    color: #F4EEFF;
+    outline: none;
+
+    &::placeholder {
+        color: #B8ADD2;
+        opacity: 0.5;
     }
 
-    const updateBalance = async (token, setBalance) => {
-        if (!web3 || !address) return
+    &:disabled {
+        color: #B8ADD2;
+    }
+`;
+
+const TokenSelectButton = styled.button`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #27262c;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
+    color: #F4EEFF;
+    transition: all 0.2s;
+    min-width: 120px;
+    justify-content: space-between;
+
+    &:hover {
+        background: #453A5C;
+    }
+
+    img {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+    }
+`;
+
+const ArrowContainer = styled.div`
+    display: flex;
+    justify-content: center;
+    margin: -16px 0;
+    z-index: 1;
+    position: relative;
+`;
+
+const ArrowButton = styled.button`
+    width: 40px;
+    height: 40px;
+    background: #27262c;
+    border: 4px solid #372F47;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 20px;
+    color: #1FC7D4;
+
+    &:hover {
+        transform: rotate(180deg);
+    }
+`;
+
+const SettingsRow = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 16px 0;
+    padding: 12px;
+    background: #372F47;
+    border-radius: 12px;
+`;
+
+const SlippageValue = styled.button`
+    background: transparent;
+    border: none;
+    color: #1FC7D4;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+
+    &:hover {
+        opacity: 0.8;
+    }
+`;
+
+const SwapButton = styled.button<{ disabled?: boolean }>`
+    width: 100%;
+    padding: 16px;
+    background: ${props => props.disabled ? '#383241' : 'linear-gradient(270deg, #7645D9 0%, #5121B1 100%)'};
+    color: ${props => props.disabled ? '#B8ADD2' : 'white'};
+    border: none;
+    border-radius: 16px;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
+    transition: all 0.2s;
+    margin-top: 16px;
+
+    &:hover {
+        ${props => !props.disabled && `
+            transform: translateY(-2px);
+            box-shadow: 0px 4px 12px rgba(118, 69, 217, 0.4);
+        `}
+    }
+`;
+
+const MEVProtect = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    background: #372F47;
+    border-radius: 12px;
+    margin-top: 12px;
+    cursor: pointer;
+
+    input {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+        accent-color: #7645D9;
+    }
+
+    label {
+        font-size: 14px;
+        color: #F4EEFF;
+        font-weight: 600;
+        cursor: pointer;
+        flex: 1;
+    }
+`;
+
+const Modal = styled.div<{ show: boolean }>`
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: ${props => props.show ? 'flex' : 'none'};
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+`;
+
+const ModalContent = styled.div`
+    background: #27262c;
+    border-radius: 24px;
+    padding: 24px;
+    width: 90%;
+    max-width: 420px;
+    max-height: 80vh;
+    overflow-y: auto;
+`;
+
+const ModalHeader = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+`;
+
+const ModalTitle = styled.h3`
+    margin: 0;
+    font-size: 20px;
+    color: #F4EEFF;
+`;
+
+const CloseButton = styled.button`
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #B8ADD2;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+
+    &:hover {
+        background: #372F47;
+    }
+`;
+
+const TokenListItem = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover {
+        background: #372F47;
+    }
+
+    img {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+    }
+`;
+
+const TokenInfo = styled.div`
+    flex: 1;
+`;
+
+const TokenSymbol = styled.div`
+    font-size: 16px;
+    font-weight: 600;
+    color: #F4EEFF;
+`;
+
+const TokenName = styled.div`
+    font-size: 12px;
+    color: #B8ADD2;
+`;
+
+const SlippageOptions = styled.div`
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin: 16px 0;
+`;
+
+const SlippageOption = styled.button<{ active: boolean }>`
+    padding: 12px;
+    background: ${props => props.active ? '#7645D9' : '#372F47'};
+    color: ${props => props.active ? 'white' : '#F4EEFF'};
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover {
+        opacity: 0.8;
+    }
+`;
+
+const ErrorText = styled.div`
+    color: #ED4B9E;
+    font-size: 14px;
+    margin-top: 12px;
+    padding: 12px;
+    background: rgba(237, 75, 158, 0.1);
+    border-radius: 12px;
+`;
+
+const SuccessText = styled.div`
+    color: #31D0AA;
+    font-size: 14px;
+    margin-top: 12px;
+    padding: 12px;
+    background: rgba(49, 208, 170, 0.1);
+    border-radius: 12px;
+`;
+
+// ==================== MAIN COMPONENT ====================
+export default function SwapPage() {
+    const [web3, setWeb3] = useState<Web3 | null>(null);
+    const [account, setAccount] = useState<string>('');
+    const [contract, setContract] = useState<SwapContract | null>(null);
+    
+    const [fromToken, setFromToken] = useState<Token>(TOKEN_LIST[0]);
+    const [toToken, setToToken] = useState<Token>(TOKEN_LIST[1]);
+    const [fromAmount, setFromAmount] = useState<string>('');
+    const [toAmount, setToAmount] = useState<string>('');
+    const [fromBalance, setFromBalance] = useState<string>('0');
+    const [toBalance, setToBalance] = useState<string>('0');
+    
+    const [loading, setLoading] = useState<boolean>(false);
+    const [slippage, setSlippage] = useState<number>(0.5);
+    const [showTokenModal, setShowTokenModal] = useState<boolean>(false);
+    const [selectingToken, setSelectingToken] = useState<'from' | 'to'>('from');
+    const [showSlippageModal, setShowSlippageModal] = useState<boolean>(false);
+    const [mevProtect, setMevProtect] = useState<boolean>(false);
+    const [error, setError] = useState<string>('');
+    const [success, setSuccess] = useState<string>('');
+
+    useEffect(() => {
+        if (account && fromToken) updateBalance(fromToken, setFromBalance);
+    }, [account, fromToken]);
+
+    useEffect(() => {
+        if (account && toToken) updateBalance(toToken, setToBalance);
+    }, [account, toToken]);
+
+    useEffect(() => {
+        if (fromAmount && fromToken && toToken && web3 && contract) {
+            getQuote();
+        } else {
+            setToAmount('');
+        }
+    }, [fromAmount, fromToken, toToken, web3, contract]);
+
+    const connectWallet = async () => {
+        if (typeof window.ethereum === 'undefined') {
+            alert('Please install MetaMask!');
+            return;
+        }
+
+        try {
+            const web3Instance = new Web3(window.ethereum);
+            await window.ethereum.request({ method: 'eth_requestAccounts' });
+            
+            const accounts = await web3Instance.eth.getAccounts();
+            const chainId = await web3Instance.eth.getChainId();
+            
+            if (chainId !== 56n && chainId !== 56) {
+                alert('Please switch to BSC Mainnet!');
+                return;
+            }
+
+            const contractInstance = new web3Instance.eth.Contract(
+                PAYPAYUSWAP_ABI, 
+                PAYPAYUSWAP_ADDRESS
+            ) as unknown as SwapContract;
+
+            setWeb3(web3Instance);
+            setAccount(accounts[0]);
+            setContract(contractInstance);
+        } catch (error: any) {
+            setError('Failed to connect: ' + error.message);
+        }
+    };
+
+    const updateBalance = async (
+        token: Token, 
+        setBalance: React.Dispatch<React.SetStateAction<string>>
+    ) => {
+        if (!web3 || !account) return;
 
         try {
             if (token.symbol === 'BNB') {
-                const balance = await web3.eth.getBalance(address)
-                setBalance(web3.utils.fromWei(balance, 'ether'))
+                const balance = await web3.eth.getBalance(account);
+                setBalance(web3.utils.fromWei(balance, 'ether'));
             } else {
-                const tokenContract = new web3.eth.Contract(ERC20_ABI, token.address)
-                const balance = await tokenContract.methods.balanceOf(address).call()
-                setBalance(web3.utils.fromWei(balance, 'ether'))
+                const tokenContract = new web3.eth.Contract(
+                    ERC20_ABI, 
+                    token.address
+                ) as unknown as ERC20Contract;
+                const balance = await tokenContract.methods.balanceOf(account).call();
+                setBalance(web3.utils.fromWei(balance as string, 'ether'));
             }
         } catch (error) {
-            console.error('Balance error:', error)
-            setBalance('0')
+            console.error('Balance error:', error);
+            setBalance('0');
         }
-    }
+    };
 
     const getQuote = async () => {
-        if (!contract || !fromAmount) return
+        if (!contract || !fromAmount || !web3) return;
 
         try {
-            let path
+            let path: string[];
             if (fromToken.symbol === 'BNB') {
-                path = [WBNB, toToken.address]
+                path = [WBNB, toToken.address];
             } else if (toToken.symbol === 'BNB') {
-                path = [fromToken.address, WBNB]
+                path = [fromToken.address, WBNB];
             } else {
-                path = [fromToken.address, toToken.address]
+                path = [fromToken.address, toToken.address];
             }
 
-            const amountIn = web3.utils.toWei(fromAmount, 'ether')
-            const amounts = await contract.methods.getAmountsOut(amountIn, path).call()
+            const amountIn = web3.utils.toWei(fromAmount, 'ether');
+            const amounts = await contract.methods.getAmountsOut(amountIn, path).call();
             
-            const output = web3.utils.fromWei(amounts[1], 'ether')
-            setToAmount(parseFloat(output).toFixed(6))
+            const output = web3.utils.fromWei((amounts as string[])[1], 'ether');
+            setToAmount(parseFloat(output).toFixed(6));
         } catch (error) {
-            console.error('Quote error:', error)
-            setToAmount('0')
+            console.error('Quote error:', error);
+            setToAmount('0');
         }
-    }
+    };
 
     const handleSwitch = () => {
-        const tempToken = fromToken
-        const tempAmount = fromAmount
-        const tempBalance = fromBalance
+        const tempToken = fromToken;
+        const tempAmount = fromAmount;
+        const tempBalance = fromBalance;
         
-        setFromToken(toToken)
-        setToToken(tempToken)
-        setFromAmount(toAmount)
-        setFromBalance(toBalance)
-        setToBalance(tempBalance)
-    }
+        setFromToken(toToken);
+        setToToken(tempToken);
+        setFromAmount(toAmount);
+        setFromBalance(toBalance);
+        setToBalance(tempBalance);
+    };
 
-    const handleTokenSelect = (token) => {
+    const handleTokenSelect = (token: Token) => {
         if (selectingToken === 'from') {
-            if (token.symbol === toToken.symbol) setToToken(fromToken)
-            setFromToken(token)
+            if (token.symbol === toToken.symbol) setToToken(fromToken);
+            setFromToken(token);
         } else {
-            if (token.symbol === fromToken.symbol) setFromToken(toToken)
-            setToToken(token)
+            if (token.symbol === fromToken.symbol) setFromToken(toToken);
+            setToToken(token);
         }
-        setShowTokenModal(false)
-    }
+        setShowTokenModal(false);
+    };
 
-    const approveToken = async (tokenAddress, amount) => {
-        const tokenContract = new web3.eth.Contract(ERC20_ABI, tokenAddress)
+    const approveToken = async (tokenAddress: string, amount: string): Promise<boolean> => {
+        if (!web3 || !account) return false;
+
+        const tokenContract = new web3.eth.Contract(
+            ERC20_ABI, 
+            tokenAddress
+        ) as unknown as ERC20Contract;
         
-        const currentAllowance = await tokenContract.methods.allowance(address, PAYPAYUSWAP_ADDRESS).call()
-        const amountInWei = web3.utils.toWei(amount, 'ether')
+        const currentAllowance = await tokenContract.methods.allowance(account, PAYPAYUSWAP_ADDRESS).call();
+        const amountInWei = web3.utils.toWei(amount, 'ether');
         
-        if (BigInt(currentAllowance) >= BigInt(amountInWei)) return true
+        if (BigInt(currentAllowance as string) >= BigInt(amountInWei)) return true;
 
         try {
-            await tokenContract.methods.approve(PAYPAYUSWAP_ADDRESS, amountInWei).send({ from: address })
-            return true
+            await tokenContract.methods.approve(PAYPAYUSWAP_ADDRESS, amountInWei).send({ from: account });
+            return true;
         } catch (error) {
-            throw new Error('Token approval failed')
+            throw new Error('Token approval failed');
         }
-    }
+    };
 
     const executeSwap = async () => {
-        if (!fromAmount || !toAmount || !contract) {
-            setError('Please enter valid amounts')
-            return
+        if (!fromAmount || !toAmount || !contract || !web3 || !account) {
+            setError('Please enter valid amounts');
+            return;
         }
 
-        setLoading(true)
-        setError('')
-        setSuccess('')
+        setLoading(true);
+        setError('');
+        setSuccess('');
 
         try {
-            const amountIn = web3.utils.toWei(fromAmount, 'ether')
-            const expectedOutput = web3.utils.toWei(toAmount, 'ether')
-            const minOutput = (BigInt(expectedOutput) * BigInt(Math.floor((100 - slippage) * 100)) / BigInt(10000)).toString()
-            const deadline = Math.floor(Date.now() / 1000) + 600
-
-            let tx
+            const amountIn = web3.utils.toWei(fromAmount, 'ether');
+            const expectedOutput = web3.utils.toWei(toAmount, 'ether');
+            const minOutput = (BigInt(expectedOutput) * BigInt(Math.floor((100 - slippage) * 100)) / BigInt(10000)).toString();
+            const deadline = Math.floor(Date.now() / 1000) + 600;
 
             if (fromToken.symbol === 'BNB') {
-                const totalBNB = web3.utils.toWei((parseFloat(fromAmount) + parseFloat(PLATFORM_FEE)).toString(), 'ether')
-                tx = await contract.methods.swapExactBNBForTokens(toToken.address, minOutput, deadline).send({ from: address, value: totalBNB, gas: 300000 })
+                const totalBNB = web3.utils.toWei((parseFloat(fromAmount) + parseFloat(PLATFORM_FEE)).toString(), 'ether');
+                await contract.methods.swapExactBNBForTokens(toToken.address, minOutput, deadline).send({ 
+                    from: account, 
+                    value: totalBNB, 
+                    gas: 300000 
+                });
             } else if (toToken.symbol === 'BNB') {
-                await approveToken(fromToken.address, fromAmount)
-                const fee = web3.utils.toWei(PLATFORM_FEE, 'ether')
-                tx = await contract.methods.swapExactTokensForBNB(fromToken.address, amountIn, minOutput, deadline).send({ from: address, value: fee, gas: 300000 })
+                await approveToken(fromToken.address, fromAmount);
+                const fee = web3.utils.toWei(PLATFORM_FEE, 'ether');
+                await contract.methods.swapExactTokensForBNB(fromToken.address, amountIn, minOutput, deadline).send({ 
+                    from: account, 
+                    value: fee, 
+                    gas: 300000 
+                });
             } else {
-                await approveToken(fromToken.address, fromAmount)
-                const fee = web3.utils.toWei(PLATFORM_FEE, 'ether')
-                tx = await contract.methods.swapExactTokensForTokens(fromToken.address, toToken.address, amountIn, minOutput, deadline).send({ from: address, value: fee, gas: 300000 })
+                await approveToken(fromToken.address, fromAmount);
+                const fee = web3.utils.toWei(PLATFORM_FEE, 'ether');
+                await contract.methods.swapExactTokensForTokens(fromToken.address, toToken.address, amountIn, minOutput, deadline).send({ 
+                    from: account, 
+                    value: fee, 
+                    gas: 300000 
+                });
             }
 
-            setSuccess('Swap successful! 🎉')
-            setFromAmount('')
-            setToAmount('')
-            updateBalance(fromToken, setFromBalance)
-            updateBalance(toToken, setToBalance)
+            setSuccess('Swap successful! 🎉');
+            setFromAmount('');
+            setToAmount('');
+            updateBalance(fromToken, setFromBalance);
+            updateBalance(toToken, setToBalance);
             
-        } catch (error) {
-            setError('Swap failed: ' + error.message)
+        } catch (error: any) {
+            setError('Swap failed: ' + error.message);
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
-    }
+    };
 
     return (
-        <div className="min-h-screen bg-dark-bg flex items-center justify-center p-4 relative overflow-hidden">
-            {/* Background Squid Game Elements */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                {/* Large Squid Game Circle - Top Left */}
-                <motion.div
-                    className="absolute top-10 left-10 w-24 h-24 border-4 border-neon-pink opacity-30 rounded-full"
-                    animate={{ 
-                        rotate: 360,
-                        scale: [1, 1.3, 1],
-                        opacity: [0.3, 0.6, 0.3]
-                    }}
-                    transition={{ 
-                        rotate: { duration: 25, repeat: Infinity, ease: "linear" },
-                        scale: { duration: 4, repeat: Infinity, ease: "easeInOut" },
-                        opacity: { duration: 3, repeat: Infinity, ease: "easeInOut" }
-                    }}
-                    style={{
-                        boxShadow: '0 0 30px rgba(255, 42, 109, 0.5)'
-                    }}
-                />
-                
-                {/* Squid Game Triangle - Top Right */}
-                <motion.div
-                    className="absolute top-16 right-16 w-20 h-20 border-4 border-neon-teal opacity-25"
-                    animate={{ 
-                        rotate: -360,
-                        scale: [1, 1.4, 1],
-                        opacity: [0.25, 0.5, 0.25]
-                    }}
-                    transition={{ 
-                        rotate: { duration: 20, repeat: Infinity, ease: "linear" },
-                        scale: { duration: 3.5, repeat: Infinity, ease: "easeInOut" },
-                        opacity: { duration: 2.5, repeat: Infinity, ease: "easeInOut" }
-                    }}
-                    style={{
-                        clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
-                        boxShadow: '0 0 25px rgba(43, 182, 115, 0.4)'
-                    }}
-                />
-            </div>
-
-            <motion.div
-                initial={{ opacity: 0, y: 50, scale: 0.9 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ duration: 0.8, ease: "easeOut" }}
-                className="max-w-md w-full glass-card neon-border rounded-2xl p-6 relative mx-auto"
-            >
-                {/* Header */}
-                <div className="flex justify-between items-center mb-6">
-                    <motion.h1
-                        className="text-2xl font-bold text-white"
-                        animate={{
-                            textShadow: [
-                                '0 0 20px rgba(255, 255, 255, 0.8)',
-                                '0 0 40px rgba(255, 255, 255, 1)',
-                                '0 0 20px rgba(255, 255, 255, 0.8)'
-                            ]
-                        }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                    >
-                        PAYU SWAP
-                    </motion.h1>
-                    <motion.button
-                        onClick={() => setShowSlippageModal(true)}
-                        className="w-8 h-8 bg-neon-purple/20 border border-neon-purple/50 rounded-lg flex items-center justify-center text-neon-purple hover:bg-neon-purple/30 transition-all"
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                    >
+        <Container>
+            <SwapCard>
+                <SwapHeader>
+                    <SwapTitle>Swap</SwapTitle>
+                    <SettingsIcon onClick={() => setShowSlippageModal(true)}>
                         ⚙️
-                    </motion.button>
-                </div>
+                    </SettingsIcon>
+                </SwapHeader>
 
-                {!isConnected ? (
-                    <div className="space-y-4">
-                        <ConnectButton.Custom>
-                            {({ openConnectModal }) => (
-                                <motion.button
-                                    onClick={openConnectModal}
-                                    className="w-full neon-button text-lg py-4 px-6 rounded-xl hover-lift relative overflow-hidden"
-                                    whileHover={{ scale: 1.05, y: -2 }}
-                                    whileTap={{ scale: 0.95 }}
-                                >
-                                    <span className="relative z-10 font-bold">Connect Wallet</span>
-                                </motion.button>
-                            )}
-                        </ConnectButton.Custom>
-                    </div>
+                {!account ? (
+                    <WalletButton onClick={connectWallet}>
+                        Connect Wallet
+                    </WalletButton>
                 ) : (
                     <>
-                        {/* Connected Wallet */}
-                        <motion.div
-                            className="flex items-center justify-center gap-3 text-neon-teal mb-6 p-3 bg-neon-teal/10 rounded-xl border border-neon-teal/30"
-                            initial={{ opacity: 0, y: -20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                        >
-                            <motion.div
-                                animate={{ scale: [1, 1.2, 1] }}
-                                transition={{ duration: 0.5, repeat: Infinity }}
-                                className="text-xl"
-                            >
-                                ✅
-                            </motion.div>
-                            <span className="font-neon">
-                                {address?.slice(0, 6)}...{address?.slice(-4)}
-                            </span>
-                        </motion.div>
+                        <ConnectedWallet>
+                            <span>🔗 {account.slice(0, 6)}...{account.slice(-4)}</span>
+                        </ConnectedWallet>
 
-                        {/* From Token */}
-                        <div className="bg-neon-purple/10 border border-neon-purple/30 rounded-xl p-4 mb-4">
-                            <div className="flex justify-between items-center mb-3">
-                                <span className="text-sm font-medium text-neon-purple">From</span>
-                                <button
-                                    onClick={() => setFromAmount(fromBalance)}
-                                    className="text-sm text-neon-purple hover:text-white transition-colors"
-                                >
+                        <TokenBox>
+                            <TokenBoxHeader>
+                                <Label>From</Label>
+                                <Balance onClick={() => setFromAmount(fromBalance)}>
                                     Balance: {parseFloat(fromBalance).toFixed(4)}
-                                </button>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <input
+                                </Balance>
+                            </TokenBoxHeader>
+                            <TokenInputRow>
+                                <TokenInput
                                     type="number"
                                     placeholder="0.00"
                                     value={fromAmount}
                                     onChange={(e) => setFromAmount(e.target.value)}
-                                    className="flex-1 bg-transparent text-xl font-bold text-white outline-none placeholder-neon-purple/50"
                                 />
-                                <button
-                                    onClick={() => {
-                                        setSelectingToken('from')
-                                        setShowTokenModal(true)
-                                    }}
-                                    className="flex items-center gap-2 bg-neon-purple/20 border border-neon-purple/50 rounded-lg px-3 py-2 hover:bg-neon-purple/30 transition-all"
-                                >
-                                    <img src={fromToken.logo} alt={fromToken.symbol} className="w-6 h-6 rounded-full" />
-                                    <span className="font-bold text-white">{fromToken.symbol}</span>
-                                    <span className="text-neon-purple">▼</span>
-                                </button>
-                            </div>
-                        </div>
+                                <TokenSelectButton onClick={() => {
+                                    setSelectingToken('from');
+                                    setShowTokenModal(true);
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <img src={fromToken.logo} alt={fromToken.symbol} />
+                                        <span>{fromToken.symbol}</span>
+                                    </div>
+                                    <span>▼</span>
+                                </TokenSelectButton>
+                            </TokenInputRow>
+                        </TokenBox>
 
-                        {/* Switch Button */}
-                        <div className="flex justify-center -my-2 relative z-10">
-                            <motion.button
-                                onClick={handleSwitch}
-                                className="w-10 h-10 bg-dark-bg border-2 border-neon-teal rounded-xl flex items-center justify-center text-neon-teal hover:bg-neon-teal/20 transition-all"
-                                whileHover={{ rotate: 180 }}
-                                whileTap={{ scale: 0.9 }}
-                            >
-                                ⇅
-                            </motion.button>
-                        </div>
+                        <ArrowContainer>
+                            <ArrowButton onClick={handleSwitch}>⇅</ArrowButton>
+                        </ArrowContainer>
 
-                        {/* To Token */}
-                        <div className="bg-neon-teal/10 border border-neon-teal/30 rounded-xl p-4 mb-4">
-                            <div className="flex justify-between items-center mb-3">
-                                <span className="text-sm font-medium text-neon-teal">To</span>
-                                <span className="text-sm text-neon-teal">
+                        <TokenBox>
+                            <TokenBoxHeader>
+                                <Label>To</Label>
+                                <Balance>
                                     Balance: {parseFloat(toBalance).toFixed(4)}
-                                </span>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <input
+                                </Balance>
+                            </TokenBoxHeader>
+                            <TokenInputRow>
+                                <TokenInput
                                     type="number"
                                     placeholder="0.00"
                                     value={toAmount}
                                     disabled
-                                    className="flex-1 bg-transparent text-xl font-bold text-white outline-none placeholder-neon-teal/50"
                                 />
-                                <button
-                                    onClick={() => {
-                                        setSelectingToken('to')
-                                        setShowTokenModal(true)
-                                    }}
-                                    className="flex items-center gap-2 bg-neon-teal/20 border border-neon-teal/50 rounded-lg px-3 py-2 hover:bg-neon-teal/30 transition-all"
-                                >
-                                    <img src={toToken.logo} alt={toToken.symbol} className="w-6 h-6 rounded-full" />
-                                    <span className="font-bold text-white">{toToken.symbol}</span>
-                                    <span className="text-neon-teal">▼</span>
-                                </button>
-                            </div>
-                        </div>
+                                <TokenSelectButton onClick={() => {
+                                    setSelectingToken('to');
+                                    setShowTokenModal(true);
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <img src={toToken.logo} alt={toToken.symbol} />
+                                        <span>{toToken.symbol}</span>
+                                    </div>
+                                    <span>▼</span>
+                                </TokenSelectButton>
+                            </TokenInputRow>
+                        </TokenBox>
 
-                        {/* Settings */}
-                        <div className="flex justify-between items-center mb-4 p-3 bg-neon-gold/10 border border-neon-gold/30 rounded-xl">
-                            <span className="text-sm font-medium text-neon-gold">Slippage Tolerance</span>
-                            <button
-                                onClick={() => setShowSlippageModal(true)}
-                                className="text-sm text-neon-gold hover:text-white transition-colors"
-                            >
+                        <SettingsRow>
+                            <Label>Slippage Tolerance</Label>
+                            <SlippageValue onClick={() => setShowSlippageModal(true)}>
                                 Auto: {slippage}% ✏️
-                            </button>
-                        </div>
+                            </SlippageValue>
+                        </SettingsRow>
 
-                        {/* MEV Protect */}
-                        <div className="flex items-center gap-3 mb-6 p-3 bg-neon-pink/10 border border-neon-pink/30 rounded-xl cursor-pointer hover:bg-neon-pink/20 transition-all">
-                            <input
-                                type="checkbox"
-                                checked={mevProtect}
-                                onChange={(e) => setMevProtect(e.target.checked)}
-                                className="w-5 h-5 accent-neon-pink"
+                        <MEVProtect onClick={() => setMevProtect(!mevProtect)}>
+                            <input 
+                                type="checkbox" 
+                                checked={mevProtect} 
+                                onChange={(e) => setMevProtect(e.target.checked)} 
                             />
-                            <label className="text-sm font-medium text-neon-pink cursor-pointer flex-1">
-                                Enable MEV Protect
-                            </label>
-                            <span className="text-neon-pink">🛡️</span>
-                        </div>
+                            <label>Enable MEV Protect</label>
+                            <span>🛡️</span>
+                        </MEVProtect>
 
-                        {/* Swap Button */}
-                        <motion.button
-                            onClick={executeSwap}
-                            disabled={!fromAmount || !toAmount || loading}
-                            className={`w-full py-4 px-6 rounded-xl font-bold text-lg transition-all ${
-                                !fromAmount || !toAmount || loading
-                                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                                    : 'neon-button hover-lift'
-                            }`}
-                            whileHover={!fromAmount || !toAmount || loading ? {} : { scale: 1.05, y: -2 }}
-                            whileTap={!fromAmount || !toAmount || loading ? {} : { scale: 0.95 }}
-                        >
+                        <SwapButton onClick={executeSwap} disabled={!fromAmount || !toAmount || loading}>
                             {loading ? 'Swapping...' : 'Swap'}
-                        </motion.button>
+                        </SwapButton>
 
-                        {/* Error/Success Messages */}
-                        {error && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="mt-4 p-3 bg-red-500/20 border border-red-500/50 rounded-xl text-red-400 text-sm"
-                            >
-                                {error}
-                            </motion.div>
-                        )}
-                        {success && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="mt-4 p-3 bg-green-500/20 border border-green-500/50 rounded-xl text-green-400 text-sm"
-                            >
-                                {success}
-                            </motion.div>
-                        )}
+                        {error && <ErrorText>{error}</ErrorText>}
+                        {success && <SuccessText>{success}</SuccessText>}
                     </>
                 )}
-            </motion.div>
+            </SwapCard>
 
-            {/* Token Selection Modal */}
-            {showTokenModal && (
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50"
-                    onClick={() => setShowTokenModal(false)}
-                >
-                    <motion.div
-                        initial={{ scale: 0.9, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        className="bg-dark-bg border border-neon-pink/50 rounded-2xl p-6 w-full max-w-md max-h-80 overflow-y-auto"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-xl font-bold text-white">Select a Token</h3>
-                            <button
-                                onClick={() => setShowTokenModal(false)}
-                                className="text-neon-pink hover:text-white text-2xl"
+            <Modal show={showTokenModal} onClick={() => setShowTokenModal(false)}>
+                <ModalContent onClick={(e) => e.stopPropagation()}>
+                    <ModalHeader>
+                        <ModalTitle>Select a Token</ModalTitle>
+                        <CloseButton onClick={() => setShowTokenModal(false)}>×</CloseButton>
+                    </ModalHeader>
+                    {TOKEN_LIST.map((token) => (
+                        <TokenListItem key={token.symbol} onClick={() => handleTokenSelect(token)}>
+                            <img src={token.logo} alt={token.symbol} />
+                            <TokenInfo>
+                                <TokenSymbol>{token.symbol}</TokenSymbol>
+                                <TokenName>{token.name}</TokenName>
+                            </TokenInfo>
+                        </TokenListItem>
+                    ))}
+                </ModalContent>
+            </Modal>
+
+            <Modal show={showSlippageModal} onClick={() => setShowSlippageModal(false)}>
+                <ModalContent onClick={(e) => e.stopPropagation()}>
+                    <ModalHeader>
+                        <ModalTitle>Settings</ModalTitle>
+                        <CloseButton onClick={() => setShowSlippageModal(false)}>×</CloseButton>
+                    </ModalHeader>
+                    <Label style={{ marginBottom: '16px', display: 'block' }}>Slippage Tolerance</Label>
+                    <SlippageOptions>
+                        {[0.1, 0.5, 1, 5].map((value) => (
+                            <SlippageOption
+                                key={value}
+                                active={slippage === value}
+                                onClick={() => {
+                                    setSlippage(value);
+                                    setShowSlippageModal(false);
+                                }}
                             >
-                                ×
-                            </button>
-                        </div>
-                        {TOKEN_LIST.map((token) => (
-                            <motion.div
-                                key={token.symbol}
-                                onClick={() => handleTokenSelect(token)}
-                                className="flex items-center gap-3 p-3 rounded-xl hover:bg-neon-purple/20 cursor-pointer transition-all"
-                                whileHover={{ scale: 1.02 }}
-                            >
-                                <img src={token.logo} alt={token.symbol} className="w-8 h-8 rounded-full" />
-                                <div className="flex-1">
-                                    <div className="font-bold text-white">{token.symbol}</div>
-                                    <div className="text-sm text-neon-purple">{token.name}</div>
-                                </div>
-                            </motion.div>
+                                {value}%
+                            </SlippageOption>
                         ))}
-                    </motion.div>
-                </motion.div>
-            )}
-
-            {/* Slippage Settings Modal */}
-            {showSlippageModal && (
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50"
-                    onClick={() => setShowSlippageModal(false)}
-                >
-                    <motion.div
-                        initial={{ scale: 0.9, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        className="bg-dark-bg border border-neon-gold/50 rounded-2xl p-6 w-full max-w-md"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-xl font-bold text-white">Settings</h3>
-                            <button
-                                onClick={() => setShowSlippageModal(false)}
-                                className="text-neon-gold hover:text-white text-2xl"
-                            >
-                                ×
-                            </button>
-                        </div>
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium text-neon-gold mb-3">
-                                Slippage Tolerance
-                            </label>
-                            <div className="grid grid-cols-4 gap-2">
-                                {[0.1, 0.5, 1, 5].map((value) => (
-                                    <motion.button
-                                        key={value}
-                                        onClick={() => {
-                                            setSlippage(value)
-                                            setShowSlippageModal(false)
-                                        }}
-                                        className={`p-3 rounded-xl font-bold transition-all ${
-                                            slippage === value
-                                                ? 'bg-neon-gold text-dark-bg'
-                                                : 'bg-neon-gold/20 text-neon-gold hover:bg-neon-gold/30'
-                                        }`}
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.95 }}
-                                    >
-                                        {value}%
-                                    </motion.button>
-                                ))}
-                            </div>
-                        </div>
-                    </motion.div>
-                </motion.div>
-            )}
-        </div>
-    )
+                    </SlippageOptions>
+                </ModalContent>
+            </Modal>
+        </Container>
+    );
 }
