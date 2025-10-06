@@ -33,8 +33,8 @@ const TOKEN_LIST = [
 
 export default function SwapPage() {
     const { address, isConnected } = useAccount()
-    const [web3, setWeb3] = useState(null)
-    const [contract, setContract] = useState(null)
+    const [web3, setWeb3] = useState<any>(null)
+    const [contract, setContract] = useState<any>(null)
     
     const [fromToken, setFromToken] = useState(TOKEN_LIST[0])
     const [toToken, setToToken] = useState(TOKEN_LIST[1])
