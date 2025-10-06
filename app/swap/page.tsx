@@ -389,17 +389,17 @@ const TokenLogoImg = styled.img`
     border-radius: 50%;
 `
 
-const TokenInfo = styled.div`
+const TokenInfoModal = styled.div`
     flex: 1;
 `
 
-const TokenSymbol = styled.div`
+const TokenSymbolModal = styled.div`
     color: #ffffff;
     font-weight: 600;
     font-size: 16px;
 `
 
-const TokenName = styled.div`
+const TokenNameModal = styled.div`
     color: #6e6e82;
     font-size: 12px;
 `
@@ -707,10 +707,10 @@ export default function SwapPage() {
                         {filteredTokens.map((token, index) => (
                             <TokenItem key={index} onClick={() => handleTokenSelect(token)}>
                                 <TokenLogoImg src={token.logo} alt={token.symbol} />
-                                <TokenInfo>
-                                    <TokenSymbol>{token.symbol}</TokenSymbol>
-                                    <TokenName>{token.name}</TokenName>
-                                </TokenInfo>
+                                <TokenInfoModal>
+                                    <TokenSymbolModal>{token.symbol}</TokenSymbolModal>
+                                    <TokenNameModal>{token.name}</TokenNameModal>
+                                </TokenInfoModal>
                             </TokenItem>
                         ))}
                     </TokenList>
