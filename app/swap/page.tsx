@@ -123,6 +123,7 @@ const TokenInfo = styled.div`
     display: flex;
     align-items: center;
     gap: 12px;
+    cursor: pointer;
 `
 
 const TokenLogo = styled.div`
@@ -323,38 +324,208 @@ const WalletButton = styled.button`
     }
 `
 
+// Token Modal Component
+const TokenModal = styled.div<{ show: boolean }>`
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: ${props => props.show ? 'flex' : 'none'};
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+`
+
+const TokenModalContent = styled.div`
+    background: #27262c;
+    border-radius: 24px;
+    padding: 24px;
+    max-width: 400px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+`
+
+const TokenSearch = styled.input`
+    width: 100%;
+    background: #353444;
+    border: none;
+    border-radius: 12px;
+    padding: 12px 16px;
+    color: #ffffff;
+    font-size: 16px;
+    margin-bottom: 16px;
+    
+    &::placeholder {
+        color: #6e6e82;
+    }
+`
+
+const TokenList = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+`
+
+const TokenItem = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+    
+    &:hover {
+        background: #353444;
+    }
+`
+
+const TokenLogoImg = styled.img`
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+`
+
+const TokenInfo = styled.div`
+    flex: 1;
+`
+
+const TokenSymbol = styled.div`
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 16px;
+`
+
+const TokenName = styled.div`
+    color: #6e6e82;
+    font-size: 12px;
+`
+
+const CloseButton = styled.button`
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: none;
+    border: none;
+    color: #6e6e82;
+    font-size: 24px;
+    cursor: pointer;
+`
+
 // Main Component
 export default function SwapPage() {
     const { address: account } = useAccount()
     const { connect, connectors } = useConnect()
-    const [fromAmount, setFromAmount] = useState('0.002')
-    const [toAmount, setToAmount] = useState('0.675105')
+    const [fromAmount, setFromAmount] = useState('')
+    const [toAmount, setToAmount] = useState('')
     const [slippage, setSlippage] = useState(0.5)
     const [mevProtect, setMevProtect] = useState(false)
     const [loading, setLoading] = useState(false)
+    const [showTokenModal, setShowTokenModal] = useState(false)
+    const [selectingToken, setSelectingToken] = useState<'from' | 'to'>('from')
+    const [searchTerm, setSearchTerm] = useState('')
 
-    const fromToken = {
+    const [fromToken, setFromToken] = useState({
         symbol: 'BNB',
         name: 'BNB',
         address: '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c',
         decimals: 18,
-        logo: '',
+        logo: 'https://cryptologos.cc/logos/bnb-bnb-logo.png',
         balance: '1.2345'
-    }
+    })
 
-    const toToken = {
+    const [toToken, setToToken] = useState({
         symbol: 'CAKE',
         name: 'PancakeSwap Token',
         address: '0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82',
         decimals: 18,
-        logo: '',
+        logo: 'https://cryptologos.cc/logos/pancakeswap-cake-logo.png',
         balance: '0.0'
-    }
+    })
+
+    const popularTokens = [
+        {
+            symbol: 'BNB',
+            name: 'BNB',
+            address: '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c',
+            decimals: 18,
+            logo: 'https://cryptologos.cc/logos/bnb-bnb-logo.png',
+            balance: '1.2345'
+        },
+        {
+            symbol: 'CAKE',
+            name: 'PancakeSwap Token',
+            address: '0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82',
+            decimals: 18,
+            logo: 'https://cryptologos.cc/logos/pancakeswap-cake-logo.png',
+            balance: '0.0'
+        },
+        {
+            symbol: 'USDT',
+            name: 'Tether USD',
+            address: '0x55d398326f99059fF775485246999027B3197955',
+            decimals: 18,
+            logo: 'https://cryptologos.cc/logos/tether-usdt-logo.png',
+            balance: '0.0'
+        },
+        {
+            symbol: 'USDC',
+            name: 'USD Coin',
+            address: '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d',
+            decimals: 18,
+            logo: 'https://cryptologos.cc/logos/usd-coin-usdc-logo.png',
+            balance: '0.0'
+        },
+        {
+            symbol: 'ETH',
+            name: 'Ethereum Token',
+            address: '0x2170Ed0880ac9A755fd29B2688956BD959F933F8',
+            decimals: 18,
+            logo: 'https://cryptologos.cc/logos/ethereum-eth-logo.png',
+            balance: '0.0'
+        }
+    ]
+
+    const filteredTokens = popularTokens.filter(token => 
+        token.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        token.name.toLowerCase().includes(searchTerm.toLowerCase())
+    )
 
     const handleQuickAmount = (percentage: number) => {
         const balance = parseFloat(fromToken.balance || '0')
         const amount = (balance * percentage).toFixed(6)
         setFromAmount(amount)
+        calculateToAmount(amount)
+    }
+
+    const calculateToAmount = (amount: string) => {
+        if (!amount || parseFloat(amount) <= 0) {
+            setToAmount('')
+            return
+        }
+        
+        // Mock calculation - gerçekte API'den gelecek
+        const mockRate = 0.0029625 // 1 CAKE = 0.0029625 BNB
+        const calculated = (parseFloat(amount) / mockRate).toFixed(6)
+        setToAmount(calculated)
+    }
+
+    const handleFromAmountChange = (value: string) => {
+        setFromAmount(value)
+        calculateToAmount(value)
+    }
+
+    const handleTokenSelect = (token: any) => {
+        if (selectingToken === 'from') {
+            setFromToken(token)
+        } else {
+            setToToken(token)
+        }
+        setShowTokenModal(false)
+        setSearchTerm('')
     }
 
     const handleSwap = () => {
@@ -403,21 +574,37 @@ export default function SwapPage() {
 
                 <TokenBox hasGradient>
                     <TokenRow>
-                        <TokenInfo>
-                            <TokenLogo style={{ background: '#F3BA2F', color: '#000' }}>
-                                BNB
-                            </TokenLogo>
+                        <TokenInfo onClick={() => {
+                            setSelectingToken('from')
+                            setShowTokenModal(true)
+                        }}>
+                            <TokenLogoImg src={fromToken.logo} alt={fromToken.symbol} />
                             <TokenDetails>
                                 <TokenSymbol>
-                                    BNB
+                                    {fromToken.symbol}
                                     <span style={{ color: '#6e6e82' }}>▼</span>
                                 </TokenSymbol>
                                 <TokenChain>BNB Chain</TokenChain>
                             </TokenDetails>
                         </TokenInfo>
                         <AmountInfo>
-                            <Amount>{fromAmount}</Amount>
-                            <USDValue>~2.39 USD</USDValue>
+                            <input
+                                type="number"
+                                value={fromAmount}
+                                onChange={(e) => handleFromAmountChange(e.target.value)}
+                                placeholder="0.00"
+                                style={{
+                                    background: 'transparent',
+                                    border: 'none',
+                                    color: '#ffffff',
+                                    fontSize: '28px',
+                                    fontWeight: '700',
+                                    textAlign: 'right',
+                                    width: '100%',
+                                    outline: 'none'
+                                }}
+                            />
+                            <USDValue>~{(parseFloat(fromAmount || '0') * 1200).toFixed(2)} USD</USDValue>
                         </AmountInfo>
                     </TokenRow>
                 </TokenBox>
@@ -448,21 +635,22 @@ export default function SwapPage() {
 
                 <TokenBox>
                     <TokenRow>
-                        <TokenInfo>
-                            <TokenLogo style={{ background: '#1FC7D4', color: '#fff' }}>
-                                🥞
-                            </TokenLogo>
+                        <TokenInfo onClick={() => {
+                            setSelectingToken('to')
+                            setShowTokenModal(true)
+                        }}>
+                            <TokenLogoImg src={toToken.logo} alt={toToken.symbol} />
                             <TokenDetails>
                                 <TokenSymbol>
-                                    CAKE
+                                    {toToken.symbol}
                                     <span style={{ color: '#6e6e82' }}>▼</span>
                                 </TokenSymbol>
                                 <TokenChain>BNB Chain</TokenChain>
                             </TokenDetails>
                         </TokenInfo>
                         <AmountInfo>
-                            <Amount>{toAmount}</Amount>
-                            <USDValue>~2.41 USD</USDValue>
+                            <Amount>{toAmount || '0.00'}</Amount>
+                            <USDValue>~{(parseFloat(toAmount || '0') * 3.5).toFixed(2)} USD</USDValue>
                         </AmountInfo>
                     </TokenRow>
                 </TokenBox>
@@ -502,6 +690,32 @@ export default function SwapPage() {
                     />
                 </MEVRow>
             </SwapCard>
+
+            {/* Token Selection Modal */}
+            <TokenModal show={showTokenModal}>
+                <TokenModalContent>
+                    <CloseButton onClick={() => setShowTokenModal(false)}>×</CloseButton>
+                    <h3 style={{ color: '#ffffff', marginBottom: '16px' }}>
+                        Select {selectingToken === 'from' ? 'From' : 'To'} Token
+                    </h3>
+                    <TokenSearch
+                        placeholder="Search name or paste address"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                    <TokenList>
+                        {filteredTokens.map((token, index) => (
+                            <TokenItem key={index} onClick={() => handleTokenSelect(token)}>
+                                <TokenLogoImg src={token.logo} alt={token.symbol} />
+                                <TokenInfo>
+                                    <TokenSymbol>{token.symbol}</TokenSymbol>
+                                    <TokenName>{token.name}</TokenName>
+                                </TokenInfo>
+                            </TokenItem>
+                        ))}
+                    </TokenList>
+                </TokenModalContent>
+            </TokenModal>
         </SwapContainer>
     )
 }
