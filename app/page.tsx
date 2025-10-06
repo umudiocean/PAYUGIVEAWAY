@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { WelcomeAnimation } from '@/components/WelcomeAnimation'
-import { CountdownTimer } from '@/components/CountdownTimer'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
 import { CONTRACT_ADDRESS, CONTRACT_ABI, REGISTRATION_FEE } from '@/lib/contract'
@@ -603,9 +602,136 @@ export default function HomePage() {
               )}
               </div>
               
-              {/* Countdown Timer */}
+              {/* Buy Now Section */}
               <div className="flex-1 max-w-md">
-                <CountdownTimer />
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1.2, duration: 0.8 }}
+                  className="text-center space-y-4"
+                >
+                  {/* BUY NOW PAYU Text */}
+                  <motion.h2
+                    className="text-2xl md:text-3xl font-bold text-white mb-6"
+                    animate={{
+                      textShadow: [
+                        '0 0 20px rgba(255, 255, 255, 0.8)',
+                        '0 0 40px rgba(255, 255, 255, 1)',
+                        '0 0 20px rgba(255, 255, 255, 0.8)'
+                      ]
+                    }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  >
+                    BUY NOW PAYU
+                  </motion.h2>
+
+                  {/* Buttons Container */}
+                  <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                    {/* PAYU SWAP Button */}
+                    <motion.a
+                      href="#"
+                      className="relative group"
+                      whileHover={{ scale: 1.05, y: -2 }}
+                      whileTap={{ scale: 0.95 }}
+                      initial={{ opacity: 0, x: -50 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 1.4, duration: 0.6 }}
+                    >
+                      <motion.button
+                        className="relative px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold rounded-xl overflow-hidden shadow-lg"
+                        animate={{
+                          boxShadow: [
+                            '0 0 20px rgba(34, 197, 94, 0.5)',
+                            '0 0 40px rgba(34, 197, 94, 0.8)',
+                            '0 0 20px rgba(34, 197, 94, 0.5)'
+                          ]
+                        }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                      >
+                        <span className="relative z-10">PAYU SWAP</span>
+                        
+                        {/* Button Glow Effect */}
+                        <motion.div
+                          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                          animate={{ x: ['-100%', '100%'] }}
+                          transition={{ duration: 2, repeat: Infinity, repeatDelay: 2 }}
+                        />
+                        
+                        {/* Pulse Rings */}
+                        <motion.div
+                          className="absolute inset-0 border-2 border-green-400 rounded-xl"
+                          animate={{
+                            scale: [1, 1.1, 1],
+                            opacity: [0.6, 0.1, 0.6]
+                          }}
+                          transition={{ duration: 2, repeat: Infinity }}
+                        />
+                        
+                        {/* Sparkles */}
+                        <motion.div
+                          className="absolute top-1 right-1 w-2 h-2 bg-white rounded-full"
+                          animate={{
+                            scale: [0, 1.5, 0],
+                            opacity: [0, 1, 0]
+                          }}
+                          transition={{ duration: 1.5, repeat: Infinity }}
+                        />
+                      </motion.button>
+                    </motion.a>
+
+                    {/* PANCAKESWAP Button */}
+                    <motion.a
+                      href="#"
+                      className="relative group"
+                      whileHover={{ scale: 1.05, y: -2 }}
+                      whileTap={{ scale: 0.95 }}
+                      initial={{ opacity: 0, x: 50 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 1.6, duration: 0.6 }}
+                    >
+                      <motion.button
+                        className="relative px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-600 text-white font-bold rounded-xl overflow-hidden shadow-lg"
+                        animate={{
+                          boxShadow: [
+                            '0 0 20px rgba(59, 130, 246, 0.5)',
+                            '0 0 40px rgba(59, 130, 246, 0.8)',
+                            '0 0 20px rgba(59, 130, 246, 0.5)'
+                          ]
+                        }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                      >
+                        <span className="relative z-10">PANCAKESWAP</span>
+                        
+                        {/* Button Glow Effect */}
+                        <motion.div
+                          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                          animate={{ x: ['-100%', '100%'] }}
+                          transition={{ duration: 2, repeat: Infinity, repeatDelay: 2 }}
+                        />
+                        
+                        {/* Pulse Rings */}
+                        <motion.div
+                          className="absolute inset-0 border-2 border-blue-400 rounded-xl"
+                          animate={{
+                            scale: [1, 1.1, 1],
+                            opacity: [0.6, 0.1, 0.6]
+                          }}
+                          transition={{ duration: 2, repeat: Infinity }}
+                        />
+                        
+                        {/* Sparkles */}
+                        <motion.div
+                          className="absolute top-1 right-1 w-2 h-2 bg-white rounded-full"
+                          animate={{
+                            scale: [0, 1.5, 0],
+                            opacity: [0, 1, 0]
+                          }}
+                          transition={{ duration: 1.5, repeat: Infinity }}
+                        />
+                      </motion.button>
+                    </motion.a>
+                  </div>
+                </motion.div>
               </div>
             </div>
           </div>
