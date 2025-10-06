@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { useAccount } from 'wagmi'
+import { useAccount, useConnect } from 'wagmi'
 import styled from 'styled-components'
 
 // Type definitions
@@ -326,6 +326,7 @@ const WalletButton = styled.button`
 // Main Component
 export default function SwapPage() {
     const { address: account } = useAccount()
+    const { connect, connectors } = useConnect()
     const [fromAmount, setFromAmount] = useState('0.002')
     const [toAmount, setToAmount] = useState('0.675105')
     const [slippage, setSlippage] = useState(0.5)
@@ -368,7 +369,12 @@ export default function SwapPage() {
         return (
             <SwapContainer>
                 <SwapCard>
-                    <WalletButton onClick={() => window.location.href = '/'}>
+                    <WalletButton onClick={() => {
+                        const metaMaskConnector = connectors.find(connector => connector.name === 'MetaMask')
+                        if (metaMaskConnector) {
+                            connect({ connector: metaMaskConnector })
+                        }
+                    }}>
                         Connect Wallet
                     </WalletButton>
                 </SwapCard>
