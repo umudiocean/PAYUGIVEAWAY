@@ -1,10 +1,10 @@
-'use client';
+'use client'
 
-import React, { useState, useEffect } from 'react';
-import Web3 from 'web3';
-import styled from 'styled-components';
+import React, { useState, useEffect } from 'react'
+import { useAccount } from 'wagmi'
+import styled from 'styled-components'
 
-// ==================== TYPE DEFINITIONS ====================
+// Type definitions
 interface Token {
     symbol: string;
     name: string;
@@ -36,868 +36,466 @@ interface SwapContract {
     };
 }
 
-// ==================== CONTRACT SETUP ====================
-const PAYPAYUSWAP_ADDRESS = "0x669f9b0D21c15a608c5309e0B964c165FB428962";
-const PLATFORM_FEE = "0.00025";
-const WBNB = "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c";
-
-const PAYPAYUSWAP_ABI = [
-    {"inputs":[{"internalType":"address","name":"tokenOut","type":"address"},{"internalType":"uint256","name":"amountOutMin","type":"uint256"},{"internalType":"uint256","name":"deadline","type":"uint256"}],"name":"swapExactBNBForTokens","outputs":[{"internalType":"uint256[]","name":"amounts","type":"uint256[]"}],"stateMutability":"payable","type":"function"},
-    {"inputs":[{"internalType":"address","name":"tokenIn","type":"address"},{"internalType":"uint256","name":"amountIn","type":"uint256"},{"internalType":"uint256","name":"amountOutMin","type":"uint256"},{"internalType":"uint256","name":"deadline","type":"uint256"}],"name":"swapExactTokensForBNB","outputs":[{"internalType":"uint256[]","name":"amounts","type":"uint256[]"}],"stateMutability":"payable","type":"function"},
-    {"inputs":[{"internalType":"address","name":"tokenIn","type":"address"},{"internalType":"address","name":"tokenOut","type":"address"},{"internalType":"uint256","name":"amountIn","type":"uint256"},{"internalType":"uint256","name":"amountOutMin","type":"uint256"},{"internalType":"uint256","name":"deadline","type":"uint256"}],"name":"swapExactTokensForTokens","outputs":[{"internalType":"uint256[]","name":"amounts","type":"uint256[]"}],"stateMutability":"payable","type":"function"},
-    {"inputs":[{"internalType":"uint256","name":"amountIn","type":"uint256"},{"internalType":"address[]","name":"path","type":"address[]"}],"name":"getAmountsOut","outputs":[{"internalType":"uint256[]","name":"amounts","type":"uint256[]"}],"stateMutability":"view","type":"function"}
-];
-
-const ERC20_ABI = [
-    {"inputs":[{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"approve","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"},
-    {"inputs":[{"internalType":"address","name":"owner","type":"address"},{"internalType":"address","name":"spender","type":"address"}],"name":"allowance","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-    {"inputs":[{"internalType":"address","name":"account","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}
-];
-
-const TOKEN_LIST: Token[] = [
-    { symbol: "BNB", name: "BNB", address: WBNB, decimals: 18, logo: "https://tokens.pancakeswap.finance/images/symbol/bnb.png" },
-    { symbol: "PAYU", name: "PayU Token", address: "0x9AeB2E6DD8d55E14292ACFCFC4077e33106e4144", decimals: 18, logo: "https://via.placeholder.com/32/7645D9/FFFFFF?text=PAYU" },
-    { symbol: "CAKE", name: "PancakeSwap Token", address: "0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82", decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82.png" },
-    { symbol: "BUSD", name: "Binance USD", address: "0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56", decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56.png" },
-    { symbol: "USDT", name: "Tether USD", address: "0x55d398326f99059fF775485246999027B3197955", decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0x55d398326f99059fF775485246999027B3197955.png" }
-];
-
-// ==================== STYLED COMPONENTS (DARK MODE ONLY) ====================
-const Container = styled.div`
+// Styled Components
+const SwapContainer = styled.div`
     min-height: 100vh;
-    background: linear-gradient(139.73deg, rgb(8, 6, 22) 0%, rgb(15, 12, 35) 100%);
+    background: linear-gradient(139.73deg, #08061e 0%, #0f0c23 100%);
     display: flex;
-    justify-content: center;
     align-items: center;
+    justify-content: center;
     padding: 20px;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-`;
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+`
 
 const SwapCard = styled.div`
     background: #27262c;
     border-radius: 32px;
-    width: 100%;
-    max-width: 440px;
+    box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.3);
     padding: 24px;
-    box-shadow: 0px 0px 1px rgba(0, 0, 0, 0.01), 0px 4px 8px rgba(0, 0, 0, 0.04), 0px 16px 24px rgba(0, 0, 0, 0.04), 0px 24px 32px rgba(0, 0, 0, 0.01);
-`;
-
-const SwapHeader = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 24px;
-`;
-
-const SwapTitle = styled.h2`
-    font-size: 24px;
-    font-weight: 700;
-    color: #F4EEFF;
-`;
-
-const SettingsIcon = styled.button`
-    width: 32px;
-    height: 32px;
-    background: #372F47;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-    color: #B8ADD2;
-    transition: all 0.2s;
-
-    &:hover {
-        background: #453A5C;
-        color: #F4EEFF;
-    }
-`;
-
-const WalletButton = styled.button`
+    max-width: 440px;
     width: 100%;
-    padding: 16px;
-    background: linear-gradient(270deg, #7645D9 0%, #5121B1 100%);
-    color: white;
-    border: none;
-    border-radius: 16px;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
+`
 
-    &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0px 4px 12px rgba(118, 69, 217, 0.4);
-    }
-`;
-
-const ConnectedWallet = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 16px;
-    background: #372F47;
-    border-radius: 12px;
-    margin-bottom: 16px;
-    font-size: 14px;
-    color: #F4EEFF;
-`;
-
-const TokenBox = styled.div`
-    background: #372F47;
-    border-radius: 16px;
-    padding: 16px;
-    margin-bottom: 8px;
-`;
-
-const TokenBoxHeader = styled.div`
+const HeaderRow = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 12px;
-`;
+`
 
 const Label = styled.span`
+    color: #b8add2;
     font-size: 14px;
-    color: #B8ADD2;
-    font-weight: 600;
-`;
+    font-weight: 500;
+`
 
-const Balance = styled.span`
-    font-size: 14px;
-    color: #B8ADD2;
+const WalletAddress = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #b8add2;
+    font-size: 12px;
+`
+
+const WalletIcon = styled.div`
+    width: 12px;
+    height: 12px;
+    background: #ff8c00;
+    border-radius: 2px;
+`
+
+const QuickButtons = styled.div`
+    display: flex;
+    gap: 4px;
+`
+
+const QuickButton = styled.button<{ isMax?: boolean }>`
+    background: transparent;
+    border: none;
+    color: ${props => props.isMax ? '#1FC7D4' : '#1FC7D4'};
+    font-size: 10px;
+    font-weight: ${props => props.isMax ? 'bold' : 'normal'};
+    padding: 2px 6px;
     cursor: pointer;
-
+    transition: all 0.2s;
+    
     &:hover {
-        color: #F4EEFF;
+        color: #53DEE9;
     }
-`;
+`
 
-const TokenInputRow = styled.div`
+const TokenBox = styled.div<{ hasGradient?: boolean }>`
+    background: #353444;
+    border-radius: 24px;
+    padding: 16px;
+    border: ${props => props.hasGradient ? '2px solid' : 'none'};
+    border-image: ${props => props.hasGradient ? 'linear-gradient(90deg, #7645d9 0%, #5121b1 100%) 1' : 'none'};
+    margin-bottom: 12px;
+`
+
+const TokenRow = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+`
+
+const TokenInfo = styled.div`
     display: flex;
     align-items: center;
     gap: 12px;
-`;
+`
 
-const TokenInput = styled.input`
-    flex: 1;
-    background: transparent;
-    border: none;
-    font-size: 24px;
-    font-weight: 600;
-    color: #F4EEFF;
-    outline: none;
-
-    &::placeholder {
-        color: #B8ADD2;
-        opacity: 0.5;
-    }
-
-    &:disabled {
-        color: #B8ADD2;
-    }
-`;
-
-const TokenSelectButton = styled.button`
+const TokenLogo = styled.div`
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
     display: flex;
     align-items: center;
-    gap: 8px;
-    background: #27262c;
-    border: none;
-    padding: 8px 12px;
-    border-radius: 12px;
-    cursor: pointer;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: bold;
+`
+
+const TokenDetails = styled.div`
+    display: flex;
+    flex-direction: column;
+`
+
+const TokenSymbol = styled.div`
+    color: #ffffff;
     font-size: 16px;
     font-weight: 600;
-    color: #F4EEFF;
-    transition: all 0.2s;
-    min-width: 120px;
-    justify-content: space-between;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+`
 
-    &:hover {
-        background: #453A5C;
-    }
+const TokenChain = styled.div`
+    color: #6e6e82;
+    font-size: 10px;
+`
 
-    img {
-        width: 24px;
-        height: 24px;
-        border-radius: 50%;
-    }
-`;
+const AmountInfo = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+`
+
+const Amount = styled.div`
+    color: #ffffff;
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1;
+`
+
+const USDValue = styled.div`
+    color: #6e6e82;
+    font-size: 12px;
+    margin-top: 2px;
+`
 
 const ArrowContainer = styled.div`
     display: flex;
     justify-content: center;
-    margin: -16px 0;
-    z-index: 1;
-    position: relative;
-`;
+    margin: 12px 0;
+`
 
 const ArrowButton = styled.button`
     width: 40px;
     height: 40px;
+    border-radius: 50%;
     background: #27262c;
-    border: 4px solid #372F47;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    border: 4px solid #27262c;
+    color: #1FC7D4;
+    font-size: 20px;
+    font-weight: bold;
     cursor: pointer;
     transition: all 0.2s;
-    font-size: 20px;
-    color: #1FC7D4;
-
+    
     &:hover {
         transform: rotate(180deg);
     }
-`;
+`
 
-const SettingsRow = styled.div`
+const SlippageRow = styled.div`
+    background: #353444;
+    border-radius: 16px;
+    padding: 12px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin: 16px 0;
-    padding: 12px;
-    background: #372F47;
-    border-radius: 12px;
-`;
+    margin-bottom: 12px;
+`
 
-const SlippageValue = styled.button`
-    background: transparent;
-    border: none;
+const SlippageValue = styled.div`
     color: #1FC7D4;
-    font-weight: 600;
     font-size: 14px;
+    font-weight: 500;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+`
 
-    &:hover {
-        opacity: 0.8;
-    }
-`;
-
-const SwapButton = styled.button<{ disabled?: boolean }>`
+const SwapButton = styled.button`
     width: 100%;
-    padding: 16px;
-    background: ${props => props.disabled ? '#383241' : 'linear-gradient(270deg, #7645D9 0%, #5121B1 100%)'};
-    color: ${props => props.disabled ? '#B8ADD2' : 'white'};
+    height: 56px;
+    background: linear-gradient(90deg, #1FC7D4 0%, #53DEE9 100%);
     border: none;
     border-radius: 16px;
+    color: #ffffff;
     font-size: 18px;
     font-weight: 700;
-    cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
-    transition: all 0.2s;
-    margin-top: 16px;
-
-    &:hover {
-        ${props => !props.disabled && `
-            transform: translateY(-2px);
-            box-shadow: 0px 4px 12px rgba(118, 69, 217, 0.4);
-        `}
-    }
-`;
-
-const MEVProtect = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px;
-    background: #372F47;
-    border-radius: 12px;
-    margin-top: 12px;
     cursor: pointer;
-
-    input {
-        width: 20px;
-        height: 20px;
-        cursor: pointer;
-        accent-color: #7645D9;
+    box-shadow: 0px 4px 12px rgba(31, 199, 212, 0.4);
+    transition: all 0.2s;
+    margin-bottom: 12px;
+    
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0px 6px 16px rgba(31, 199, 212, 0.5);
     }
-
-    label {
-        font-size: 14px;
-        color: #F4EEFF;
-        font-weight: 600;
-        cursor: pointer;
-        flex: 1;
+    
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
     }
-`;
+`
 
-const Modal = styled.div<{ show: boolean }>`
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
-    display: ${props => props.show ? 'flex' : 'none'};
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-`;
-
-const ModalContent = styled.div`
-    background: #27262c;
-    border-radius: 24px;
-    padding: 24px;
-    width: 90%;
-    max-width: 420px;
-    max-height: 80vh;
-    overflow-y: auto;
-`;
-
-const ModalHeader = styled.div`
+const ConversionRow = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
-`;
+    padding: 12px 0;
+    color: #b8add2;
+    font-size: 14px;
+`
 
-const ModalTitle = styled.h3`
-    margin: 0;
-    font-size: 20px;
-    color: #F4EEFF;
-`;
+const RefreshIcon = styled.div`
+    width: 16px;
+    height: 16px;
+    border: 2px solid #1FC7D4;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 6px;
+`
 
-const CloseButton = styled.button`
-    background: none;
-    border: none;
-    font-size: 24px;
+const MEVRow = styled.div`
+    background: #353444;
+    border-radius: 16px;
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 12px;
+`
+
+const MEVLabel = styled.div`
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: underline;
     cursor: pointer;
-    color: #B8ADD2;
-    padding: 0;
-    width: 32px;
-    height: 32px;
     display: flex;
     align-items: center;
-    justify-content: center;
-    border-radius: 8px;
-
-    &:hover {
-        background: #372F47;
-    }
-`;
-
-const TokenListItem = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.2s;
-
-    &:hover {
-        background: #372F47;
-    }
-
-    img {
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-    }
-`;
-
-const TokenInfo = styled.div`
-    flex: 1;
-`;
-
-const TokenSymbol = styled.div`
-    font-size: 16px;
-    font-weight: 600;
-    color: #F4EEFF;
-`;
-
-const TokenName = styled.div`
-    font-size: 12px;
-    color: #B8ADD2;
-`;
-
-const SlippageOptions = styled.div`
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
     gap: 8px;
-    margin: 16px 0;
-`;
+`
 
-const SlippageOption = styled.button<{ active: boolean }>`
-    padding: 12px;
-    background: ${props => props.active ? '#7645D9' : '#372F47'};
-    color: ${props => props.active ? 'white' : '#F4EEFF'};
-    border: none;
-    border-radius: 12px;
-    font-weight: 600;
+const ToggleSwitch = styled.div<{ active: boolean }>`
+    width: 40px;
+    height: 20px;
+    background: ${props => props.active ? '#1FC7D4' : '#453A5C'};
+    border-radius: 10px;
+    position: relative;
     cursor: pointer;
     transition: all 0.2s;
-
-    &:hover {
-        opacity: 0.8;
+    
+    &::after {
+        content: '';
+        position: absolute;
+        width: 16px;
+        height: 16px;
+        background: white;
+        border-radius: 50%;
+        top: 2px;
+        left: ${props => props.active ? '22px' : '2px'};
+        transition: all 0.2s;
     }
-`;
+`
 
-const ErrorText = styled.div`
-    color: #ED4B9E;
-    font-size: 14px;
-    margin-top: 12px;
-    padding: 12px;
-    background: rgba(237, 75, 158, 0.1);
-    border-radius: 12px;
-`;
+const WalletButton = styled.button`
+    width: 100%;
+    height: 56px;
+    background: linear-gradient(90deg, #1FC7D4 0%, #53DEE9 100%);
+    border: none;
+    border-radius: 16px;
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0px 4px 12px rgba(31, 199, 212, 0.4);
+    transition: all 0.2s;
+    
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0px 6px 16px rgba(31, 199, 212, 0.5);
+    }
+`
 
-const SuccessText = styled.div`
-    color: #31D0AA;
-    font-size: 14px;
-    margin-top: 12px;
-    padding: 12px;
-    background: rgba(49, 208, 170, 0.1);
-    border-radius: 12px;
-`;
-
-// ==================== MAIN COMPONENT ====================
+// Main Component
 export default function SwapPage() {
-    const [web3, setWeb3] = useState<Web3 | null>(null);
-    const [account, setAccount] = useState<string>('');
-    const [contract, setContract] = useState<SwapContract | null>(null);
-    
-    const [fromToken, setFromToken] = useState<Token>(TOKEN_LIST[0]);
-    const [toToken, setToToken] = useState<Token>(TOKEN_LIST[1]);
-    const [fromAmount, setFromAmount] = useState<string>('');
-    const [toAmount, setToAmount] = useState<string>('');
-    const [fromBalance, setFromBalance] = useState<string>('0');
-    const [toBalance, setToBalance] = useState<string>('0');
-    
-    const [loading, setLoading] = useState<boolean>(false);
-    const [slippage, setSlippage] = useState<number>(0.5);
-    const [showTokenModal, setShowTokenModal] = useState<boolean>(false);
-    const [selectingToken, setSelectingToken] = useState<'from' | 'to'>('from');
-    const [showSlippageModal, setShowSlippageModal] = useState<boolean>(false);
-    const [mevProtect, setMevProtect] = useState<boolean>(false);
-    const [error, setError] = useState<string>('');
-    const [success, setSuccess] = useState<string>('');
+    const { address: account } = useAccount()
+    const [fromAmount, setFromAmount] = useState('0.002')
+    const [toAmount, setToAmount] = useState('0.675105')
+    const [slippage, setSlippage] = useState(0.5)
+    const [mevProtect, setMevProtect] = useState(false)
+    const [loading, setLoading] = useState(false)
 
-    useEffect(() => {
-        if (account && fromToken) updateBalance(fromToken, setFromBalance);
-    }, [account, fromToken]);
+    const fromToken = {
+        symbol: 'BNB',
+        name: 'BNB',
+        address: '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c',
+        decimals: 18,
+        logo: '',
+        balance: '1.2345'
+    }
 
-    useEffect(() => {
-        if (account && toToken) updateBalance(toToken, setToBalance);
-    }, [account, toToken]);
+    const toToken = {
+        symbol: 'CAKE',
+        name: 'PancakeSwap Token',
+        address: '0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82',
+        decimals: 18,
+        logo: '',
+        balance: '0.0'
+    }
 
-    useEffect(() => {
-        if (fromAmount && fromToken && toToken && web3 && contract) {
-            getQuote();
-        } else {
-            setToAmount('');
-        }
-    }, [fromAmount, fromToken, toToken, web3, contract]);
+    const handleQuickAmount = (percentage: number) => {
+        const balance = parseFloat(fromToken.balance || '0')
+        const amount = (balance * percentage).toFixed(6)
+        setFromAmount(amount)
+    }
 
-    const connectWallet = async () => {
-        if (typeof window.ethereum === 'undefined') {
-            alert('Please install MetaMask!');
-            return;
-        }
+    const handleSwap = () => {
+        setLoading(true)
+        // Swap logic here
+        setTimeout(() => {
+            setLoading(false)
+        }, 2000)
+    }
 
-        try {
-            const web3Instance = new Web3(window.ethereum);
-            await window.ethereum.request({ method: 'eth_requestAccounts' });
-            
-            const accounts = await web3Instance.eth.getAccounts();
-            const chainId = await web3Instance.eth.getChainId();
-            
-            if (chainId !== 56n && Number(chainId) !== 56) {
-                alert('Please switch to BSC Mainnet!');
-                return;
-            }
-
-            const contractInstance = new web3Instance.eth.Contract(
-                PAYPAYUSWAP_ABI, 
-                PAYPAYUSWAP_ADDRESS
-            ) as unknown as SwapContract;
-
-            setWeb3(web3Instance);
-            setAccount(accounts[0]);
-            setContract(contractInstance);
-        } catch (error: any) {
-            setError('Failed to connect: ' + error.message);
-        }
-    };
-
-    const updateBalance = async (
-        token: Token, 
-        setBalance: React.Dispatch<React.SetStateAction<string>>
-    ) => {
-        if (!web3 || !account) return;
-
-        try {
-            if (token.symbol === 'BNB') {
-                const balance = await web3.eth.getBalance(account);
-                setBalance(web3.utils.fromWei(balance, 'ether'));
-            } else {
-                const tokenContract = new web3.eth.Contract(
-                    ERC20_ABI, 
-                    token.address
-                ) as unknown as ERC20Contract;
-                const balance = await tokenContract.methods.balanceOf(account).call();
-                setBalance(web3.utils.fromWei(balance as string, 'ether'));
-            }
-        } catch (error) {
-            console.error('Balance error:', error);
-            setBalance('0');
-        }
-    };
-
-    const getQuote = async () => {
-        if (!contract || !fromAmount || !web3) return;
-
-        try {
-            let path: string[];
-            if (fromToken.symbol === 'BNB') {
-                path = [WBNB, toToken.address];
-            } else if (toToken.symbol === 'BNB') {
-                path = [fromToken.address, WBNB];
-            } else {
-                path = [fromToken.address, toToken.address];
-            }
-
-            const amountIn = web3.utils.toWei(fromAmount, 'ether');
-            const amounts = await contract.methods.getAmountsOut(amountIn, path).call();
-            
-            const output = web3.utils.fromWei((amounts as string[])[1], 'ether');
-            setToAmount(parseFloat(output).toFixed(6));
-        } catch (error) {
-            console.error('Quote error:', error);
-            setToAmount('0');
-        }
-    };
-
-    const handleSwitch = () => {
-        const tempToken = fromToken;
-        const tempAmount = fromAmount;
-        const tempBalance = fromBalance;
-        
-        setFromToken(toToken);
-        setToToken(tempToken);
-        setFromAmount(toAmount);
-        setFromBalance(toBalance);
-        setToBalance(tempBalance);
-    };
-
-    const handleTokenSelect = (token: Token) => {
-        if (selectingToken === 'from') {
-            if (token.symbol === toToken.symbol) setToToken(fromToken);
-            setFromToken(token);
-        } else {
-            if (token.symbol === fromToken.symbol) setFromToken(toToken);
-            setToToken(token);
-        }
-        setShowTokenModal(false);
-    };
-
-    const approveToken = async (tokenAddress: string, amount: string): Promise<boolean> => {
-        if (!web3 || !account) return false;
-
-        const tokenContract = new web3.eth.Contract(
-            ERC20_ABI, 
-            tokenAddress
-        ) as unknown as ERC20Contract;
-        
-        const currentAllowance = await tokenContract.methods.allowance(account, PAYPAYUSWAP_ADDRESS).call();
-        const amountInWei = web3.utils.toWei(amount, 'ether');
-        
-        if (BigInt(currentAllowance as string) >= BigInt(amountInWei)) return true;
-
-        try {
-            await tokenContract.methods.approve(PAYPAYUSWAP_ADDRESS, amountInWei).send({ from: account });
-            return true;
-        } catch (error) {
-            throw new Error('Token approval failed');
-        }
-    };
-
-    const executeSwap = async () => {
-        if (!fromAmount || !toAmount || !contract || !web3 || !account) {
-            setError('Please enter valid amounts');
-            return;
-        }
-
-        setLoading(true);
-        setError('');
-        setSuccess('');
-
-        try {
-            const amountIn = web3.utils.toWei(fromAmount, 'ether');
-            const expectedOutput = web3.utils.toWei(toAmount, 'ether');
-            const minOutput = (BigInt(expectedOutput) * BigInt(Math.floor((100 - slippage) * 100)) / BigInt(10000)).toString();
-            const deadline = Math.floor(Date.now() / 1000) + 600;
-
-            if (fromToken.symbol === 'BNB') {
-                const totalBNB = web3.utils.toWei((parseFloat(fromAmount) + parseFloat(PLATFORM_FEE)).toString(), 'ether');
-                await contract.methods.swapExactBNBForTokens(toToken.address, minOutput, deadline).send({ 
-                    from: account, 
-                    value: totalBNB, 
-                    gas: 300000 
-                });
-            } else if (toToken.symbol === 'BNB') {
-                await approveToken(fromToken.address, fromAmount);
-                const fee = web3.utils.toWei(PLATFORM_FEE, 'ether');
-                await contract.methods.swapExactTokensForBNB(fromToken.address, amountIn, minOutput, deadline).send({ 
-                    from: account, 
-                    value: fee, 
-                    gas: 300000 
-                });
-            } else {
-                await approveToken(fromToken.address, fromAmount);
-                const fee = web3.utils.toWei(PLATFORM_FEE, 'ether');
-                await contract.methods.swapExactTokensForTokens(fromToken.address, toToken.address, amountIn, minOutput, deadline).send({ 
-                    from: account, 
-                    value: fee, 
-                    gas: 300000 
-                });
-            }
-
-            setSuccess('Swap successful! 🎉');
-            setFromAmount('');
-            setToAmount('');
-            updateBalance(fromToken, setFromBalance);
-            updateBalance(toToken, setToBalance);
-            
-        } catch (error: any) {
-            setError('Swap failed: ' + error.message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    return (
-        <Container>
-            <SwapCard>
-                <SwapHeader>
-                    <SwapTitle>Swap</SwapTitle>
-                    <SettingsIcon onClick={() => setShowSlippageModal(true)}>
-                        ⚙️
-                    </SettingsIcon>
-                </SwapHeader>
-
-                {!account ? (
-                    <WalletButton onClick={connectWallet}>
+    if (!account) {
+        return (
+            <SwapContainer>
+                <SwapCard>
+                    <WalletButton onClick={() => window.location.href = '/'}>
                         Connect Wallet
                     </WalletButton>
-                ) : (
-                    <>
-                        <TokenBox>
-                            <TokenBoxHeader>
-                                <Label>From</Label>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <span style={{ fontSize: '12px', color: '#B8ADD2' }}>🔗 {account?.slice(0, 6)}...{account?.slice(-4)}</span>
-                                    <div style={{ display: 'flex', gap: '4px' }}>
-                                        <button 
-                                            onClick={() => setFromAmount((parseFloat(fromBalance) * 0.25).toString())}
-                                            style={{ 
-                                                padding: '2px 6px', 
-                                                fontSize: '10px', 
-                                                background: 'transparent', 
-                                                border: 'none', 
-                                                color: '#B8ADD2',
-                                                cursor: 'pointer'
-                                            }}
-                                        >
-                                            25%
-                                        </button>
-                                        <button 
-                                            onClick={() => setFromAmount((parseFloat(fromBalance) * 0.5).toString())}
-                                            style={{ 
-                                                padding: '2px 6px', 
-                                                fontSize: '10px', 
-                                                background: 'transparent', 
-                                                border: 'none', 
-                                                color: '#B8ADD2',
-                                                cursor: 'pointer'
-                                            }}
-                                        >
-                                            50%
-                                        </button>
-                                        <button 
-                                            onClick={() => setFromAmount(fromBalance)}
-                                            style={{ 
-                                                padding: '2px 6px', 
-                                                fontSize: '10px', 
-                                                background: 'transparent', 
-                                                border: 'none', 
-                                                color: '#F4EEFF',
-                                                cursor: 'pointer',
-                                                fontWeight: 'bold'
-                                            }}
-                                        >
-                                            MAX
-                                        </button>
-                                    </div>
-                                </div>
-                            </TokenBoxHeader>
-                            <TokenInputRow>
-                                <TokenInput
-                                    type="number"
-                                    placeholder="0.00"
-                                    value={fromAmount}
-                                    onChange={(e) => setFromAmount(e.target.value)}
-                                />
-                                <TokenSelectButton onClick={() => {
-                                    setSelectingToken('from');
-                                    setShowTokenModal(true);
-                                }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <img src={fromToken.logo} alt={fromToken.symbol} />
-                                        <div>
-                                            <div style={{ fontWeight: 'bold' }}>{fromToken.symbol}</div>
-                                            <div style={{ fontSize: '10px', color: '#B8ADD2' }}>BNB Chain</div>
-                                        </div>
-                                    </div>
-                                    <span>▼</span>
-                                </TokenSelectButton>
-                            </TokenInputRow>
-                        </TokenBox>
+                </SwapCard>
+            </SwapContainer>
+        )
+    }
 
-                        <ArrowContainer>
-                            <ArrowButton onClick={handleSwitch}>⇅</ArrowButton>
-                        </ArrowContainer>
+    return (
+        <SwapContainer>
+            <SwapCard>
+                {/* From Section */}
+                <HeaderRow>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Label>From:</Label>
+                        <WalletAddress>
+                            <WalletIcon />
+                            {account.slice(0, 6)}...{account.slice(-4)}
+                        </WalletAddress>
+                    </div>
+                    <QuickButtons>
+                        <QuickButton onClick={() => handleQuickAmount(0.25)}>25%</QuickButton>
+                        <QuickButton onClick={() => handleQuickAmount(0.5)}>50%</QuickButton>
+                        <QuickButton isMax onClick={() => setFromAmount(fromToken.balance || '0')}>MAX</QuickButton>
+                    </QuickButtons>
+                </HeaderRow>
 
-                        <TokenBox>
-                            <TokenBoxHeader>
-                                <Label>To</Label>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <span style={{ fontSize: '12px', color: '#B8ADD2' }}>🔗 {account?.slice(0, 6)}...{account?.slice(-4)}</span>
-                                    <button 
-                                        onClick={() => navigator.clipboard.writeText(account || '')}
-                                        style={{ 
-                                            padding: '2px', 
-                                            background: 'transparent', 
-                                            border: 'none', 
-                                            color: '#B8ADD2',
-                                            cursor: 'pointer',
-                                            fontSize: '12px'
-                                        }}
-                                    >
-                                        📋
-                                    </button>
-                                </div>
-                            </TokenBoxHeader>
-                            <TokenInputRow>
-                                <TokenInput
-                                    type="number"
-                                    placeholder="0.00"
-                                    value={toAmount}
-                                    disabled
-                                />
-                                <TokenSelectButton onClick={() => {
-                                    setSelectingToken('to');
-                                    setShowTokenModal(true);
-                                }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <img src={toToken.logo} alt={toToken.symbol} />
-                                        <div>
-                                            <div style={{ fontWeight: 'bold' }}>{toToken.symbol}</div>
-                                            <div style={{ fontSize: '10px', color: '#B8ADD2' }}>BNB Chain</div>
-                                        </div>
-                                    </div>
-                                    <span>▼</span>
-                                </TokenSelectButton>
-                            </TokenInputRow>
-                        </TokenBox>
+                <TokenBox hasGradient>
+                    <TokenRow>
+                        <TokenInfo>
+                            <TokenLogo style={{ background: '#F3BA2F', color: '#000' }}>
+                                BNB
+                            </TokenLogo>
+                            <TokenDetails>
+                                <TokenSymbol>
+                                    BNB
+                                    <span style={{ color: '#6e6e82' }}>▼</span>
+                                </TokenSymbol>
+                                <TokenChain>BNB Chain</TokenChain>
+                            </TokenDetails>
+                        </TokenInfo>
+                        <AmountInfo>
+                            <Amount>{fromAmount}</Amount>
+                            <USDValue>~2.39 USD</USDValue>
+                        </AmountInfo>
+                    </TokenRow>
+                </TokenBox>
 
-                        <SettingsRow>
-                            <Label>Slippage Tolerance</Label>
-                            <SlippageValue onClick={() => setShowSlippageModal(true)}>
-                                Auto: {slippage}% ✏️
-                            </SlippageValue>
-                        </SettingsRow>
-                        
-                        <div style={{ 
-                            background: '#372F47', 
-                            borderRadius: '12px', 
-                            padding: '12px', 
-                            margin: '16px 0',
-                            fontSize: '12px',
-                            color: '#B8ADD2'
-                        }}>
-                            Enter an amount
-                        </div>
+                {/* Arrow */}
+                <ArrowContainer>
+                    <ArrowButton onClick={() => {
+                        // Swap tokens logic
+                        const temp = fromToken
+                        // setFromToken(toToken)
+                        // setToToken(temp)
+                    }}>
+                        ↓
+                    </ArrowButton>
+                </ArrowContainer>
 
-                        <MEVProtect onClick={() => setMevProtect(!mevProtect)}>
-                            <span style={{ fontSize: '16px' }}>🛡️</span>
-                            <label>Enable MEV Protect</label>
-                            <div style={{ 
-                                width: '40px', 
-                                height: '20px', 
-                                background: mevProtect ? '#7645D9' : '#453A5C', 
-                                borderRadius: '10px', 
-                                position: 'relative',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s'
-                            }}>
-                                <div style={{
-                                    width: '16px',
-                                    height: '16px',
-                                    background: 'white',
-                                    borderRadius: '50%',
-                                    position: 'absolute',
-                                    top: '2px',
-                                    left: mevProtect ? '22px' : '2px',
-                                    transition: 'all 0.2s'
-                                }} />
-                            </div>
-                        </MEVProtect>
+                {/* To Section */}
+                <HeaderRow>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Label>To:</Label>
+                        <WalletAddress>
+                            <WalletIcon />
+                            {account.slice(0, 6)}...{account.slice(-4)}
+                        </WalletAddress>
+                    </div>
+                    <div style={{ color: '#6e6e82', fontSize: '14px' }}>⚙️</div>
+                </HeaderRow>
 
-                        <SwapButton onClick={executeSwap} disabled={!fromAmount || !toAmount || loading}>
-                            {loading ? 'Swapping...' : 'Swap'}
-                        </SwapButton>
+                <TokenBox>
+                    <TokenRow>
+                        <TokenInfo>
+                            <TokenLogo style={{ background: '#1FC7D4', color: '#fff' }}>
+                                🥞
+                            </TokenLogo>
+                            <TokenDetails>
+                                <TokenSymbol>
+                                    CAKE
+                                    <span style={{ color: '#6e6e82' }}>▼</span>
+                                </TokenSymbol>
+                                <TokenChain>BNB Chain</TokenChain>
+                            </TokenDetails>
+                        </TokenInfo>
+                        <AmountInfo>
+                            <Amount>{toAmount}</Amount>
+                            <USDValue>~2.41 USD</USDValue>
+                        </AmountInfo>
+                    </TokenRow>
+                </TokenBox>
 
-                        {error && <ErrorText>{error}</ErrorText>}
-                        {success && <SuccessText>{success}</SuccessText>}
-                    </>
-                )}
+                {/* Slippage */}
+                <SlippageRow>
+                    <Label>Slippage Tolerance</Label>
+                    <SlippageValue>
+                        Auto: {slippage}% ✏️
+                    </SlippageValue>
+                </SlippageRow>
+
+                {/* Swap Button */}
+                <SwapButton onClick={handleSwap} disabled={loading}>
+                    {loading ? 'Swapping...' : 'Swap'}
+                </SwapButton>
+
+                {/* Conversion Rate */}
+                <ConversionRow>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <RefreshIcon />
+                        1 CAKE ↔ 0.0029625 BNB
+                    </div>
+                    <div style={{ color: '#6e6e82' }}>
+                        Fee 0.00000998 BNB ▼
+                    </div>
+                </ConversionRow>
+
+                {/* MEV Protect */}
+                <MEVRow>
+                    <MEVLabel onClick={() => setMevProtect(!mevProtect)}>
+                        🛡️ Enable MEV Protect
+                    </MEVLabel>
+                    <ToggleSwitch 
+                        active={mevProtect} 
+                        onClick={() => setMevProtect(!mevProtect)}
+                    />
+                </MEVRow>
             </SwapCard>
-
-            <Modal show={showTokenModal} onClick={() => setShowTokenModal(false)}>
-                <ModalContent onClick={(e) => e.stopPropagation()}>
-                    <ModalHeader>
-                        <ModalTitle>Select a Token</ModalTitle>
-                        <CloseButton onClick={() => setShowTokenModal(false)}>×</CloseButton>
-                    </ModalHeader>
-                    {TOKEN_LIST.map((token) => (
-                        <TokenListItem key={token.symbol} onClick={() => handleTokenSelect(token)}>
-                            <img src={token.logo} alt={token.symbol} />
-                            <TokenInfo>
-                                <TokenSymbol>{token.symbol}</TokenSymbol>
-                                <TokenName>{token.name}</TokenName>
-                            </TokenInfo>
-                        </TokenListItem>
-                    ))}
-                </ModalContent>
-            </Modal>
-
-            <Modal show={showSlippageModal} onClick={() => setShowSlippageModal(false)}>
-                <ModalContent onClick={(e) => e.stopPropagation()}>
-                    <ModalHeader>
-                        <ModalTitle>Settings</ModalTitle>
-                        <CloseButton onClick={() => setShowSlippageModal(false)}>×</CloseButton>
-                    </ModalHeader>
-                    <Label style={{ marginBottom: '16px', display: 'block' }}>Slippage Tolerance</Label>
-                    <SlippageOptions>
-                        {[0.1, 0.5, 1, 5].map((value) => (
-                            <SlippageOption
-                                key={value}
-                                active={slippage === value}
-                                onClick={() => {
-                                    setSlippage(value);
-                                    setShowSlippageModal(false);
-                                }}
-                            >
-                                {value}%
-                            </SlippageOption>
-                        ))}
-                    </SlippageOptions>
-                </ModalContent>
-            </Modal>
-        </Container>
-    );
+        </SwapContainer>
+    )
 }
