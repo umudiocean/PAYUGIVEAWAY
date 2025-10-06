@@ -629,7 +629,7 @@ export default function HomePage() {
                   <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
                     {/* PAYU SWAP Button */}
                     <motion.a
-                      href="#"
+                      href="/swap"
                       className="relative group"
                       whileHover={{ scale: 1.05, y: -2 }}
                       whileTap={{ scale: 0.95 }}
@@ -681,7 +681,9 @@ export default function HomePage() {
 
                     {/* PANCAKESWAP Button */}
                     <motion.a
-                      href="#"
+                      href="https://pancakeswap.finance/swap?outputCurrency=0x9AeB2E6DD8d55E14292ACFCFC4077e33106e4144"
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="relative group"
                       whileHover={{ scale: 1.05, y: -2 }}
                       whileTap={{ scale: 0.95 }}
