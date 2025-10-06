@@ -635,14 +635,14 @@ export default function SwapPage() {
             const [name, symbol, decimals] = await Promise.all([
                 contract.methods.name().call().catch(() => 'Unknown Token'),
                 contract.methods.symbol().call().catch(() => 'UNKNOWN'),
-                contract.methods.decimals().call().catch(() => 18)
+                contract.methods.decimals().call().catch(() => '18')
             ])
             
             const newToken = {
-                symbol: symbol,
-                name: name,
+                symbol: symbol as string,
+                name: name as string,
                 address: customTokenAddress,
-                decimals: parseInt(decimals),
+                decimals: parseInt(String(decimals || '18')),
                 logo: `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/${customTokenAddress}/logo.png`,
                 balance: '0.0'
             }
