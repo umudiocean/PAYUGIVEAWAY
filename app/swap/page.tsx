@@ -1060,9 +1060,9 @@ export default function SwapPage() {
             const fromDecimals = fromToken.decimals || 18
             const toDecimals = toToken.decimals || 18
             
-            // Gerçek decimal ile amount hesapla
-            const amountIn = web3.utils.toBN(fromAmount).mul(web3.utils.toBN(10).pow(web3.utils.toBN(fromDecimals)))
-            const amountOutMin = web3.utils.toBN(toAmount).mul(web3.utils.toBN(1 - slippage / 100)).mul(web3.utils.toBN(10).pow(web3.utils.toBN(toDecimals)))
+            // Gerçek decimal ile amount hesapla - Web3.js uyumlu
+            const amountIn = web3.utils.toWei(fromAmount, 'ether')
+            const amountOutMin = web3.utils.toWei((parseFloat(toAmount) * (1 - slippage / 100)).toString(), 'ether')
             const deadline = Math.floor(Date.now() / 1000) + 600 // 10 dakika
 
             let tx
@@ -1070,13 +1070,13 @@ export default function SwapPage() {
             if (fromToken.symbol === 'BNB') {
                 // BNB -> Token swap
                 tx = await routerContract.methods.swapExactBNBForTokens(
-                    amountOutMin.toString(),
+                    amountOutMin,
                     path,
                     account,
                     deadline
                 ).send({
                     from: account,
-                    value: amountIn.toString(),
+                    value: amountIn,
                     gas: 300000
                 })
             } else if (toToken.symbol === 'BNB') {
@@ -1095,11 +1095,11 @@ export default function SwapPage() {
                     }
                 ], fromToken.address)
                 
-                await tokenContract.methods.approve(ROUTER_ADDRESS, amountIn.toString()).send({ from: account })
+                await tokenContract.methods.approve(ROUTER_ADDRESS, amountIn).send({ from: account })
                 
                 tx = await routerContract.methods.swapExactTokensForBNB(
-                    amountIn.toString(),
-                    amountOutMin.toString(),
+                    amountIn,
+                    amountOutMin,
                     path,
                     account,
                     deadline
@@ -1123,11 +1123,11 @@ export default function SwapPage() {
                     }
                 ], fromToken.address)
                 
-                await tokenContract.methods.approve(ROUTER_ADDRESS, amountIn.toString()).send({ from: account })
+                await tokenContract.methods.approve(ROUTER_ADDRESS, amountIn).send({ from: account })
                 
                 tx = await routerContract.methods.swapExactTokensForTokens(
-                    amountIn.toString(),
-                    amountOutMin.toString(),
+                    amountIn,
+                    amountOutMin,
                     path,
                     account,
                     deadline
