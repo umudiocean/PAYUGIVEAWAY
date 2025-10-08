@@ -998,12 +998,187 @@ export default function SwapPage() {
         token.address.toLowerCase().includes(searchTerm.toLowerCase())
     )
 
-    const handleSwap = () => {
+    const handleSwap = async () => {
+        if (!fromAmount || !toAmount || !account) {
+            alert('Please enter valid amounts and connect wallet')
+            return
+        }
+
         setLoading(true)
-        // Swap logic here
-        setTimeout(() => {
+        
+        try {
+            // PancakeSwap Router V2 contract address
+            const ROUTER_ADDRESS = '0x10ED43C718714eb63d5aA57B78B54704E256024E'
+            
+            // PancakeSwap Router ABI
+            const ROUTER_ABI = [
+                {
+                    "inputs": [
+                        {"internalType": "uint256", "name": "amountIn", "type": "uint256"},
+                        {"internalType": "uint256", "name": "amountOutMin", "type": "uint256"},
+                        {"internalType": "address[]", "name": "path", "type": "address[]"},
+                        {"internalType": "address", "name": "to", "type": "address"},
+                        {"internalType": "uint256", "name": "deadline", "type": "uint256"}
+                    ],
+                    "name": "swapExactTokensForTokens",
+                    "outputs": [{"internalType": "uint256[]", "name": "amounts", "type": "uint256[]"}],
+                    "stateMutability": "nonpayable",
+                    "type": "function"
+                },
+                {
+                    "inputs": [
+                        {"internalType": "uint256", "name": "amountOutMin", "type": "uint256"},
+                        {"internalType": "address[]", "name": "path", "type": "address[]"},
+                        {"internalType": "address", "name": "to", "type": "address"},
+                        {"internalType": "uint256", "name": "deadline", "type": "uint256"}
+                    ],
+                    "name": "swapExactBNBForTokens",
+                    "outputs": [{"internalType": "uint256[]", "name": "amounts", "type": "uint256[]"}],
+                    "stateMutability": "payable",
+                    "type": "function"
+                },
+                {
+                    "inputs": [
+                        {"internalType": "uint256", "name": "amountIn", "type": "uint256"},
+                        {"internalType": "uint256", "name": "amountOutMin", "type": "uint256"},
+                        {"internalType": "address[]", "name": "path", "type": "address[]"},
+                        {"internalType": "address", "name": "to", "type": "address"},
+                        {"internalType": "uint256", "name": "deadline", "type": "uint256"}
+                    ],
+                    "name": "swapExactTokensForBNB",
+                    "outputs": [{"internalType": "uint256[]", "name": "amounts", "type": "uint256[]"}],
+                    "stateMutability": "payable",
+                    "type": "function"
+                }
+            ]
+
+            // Web3 instance oluştur
+            const Web3 = (await import('web3')).default
+            const web3 = new Web3(window.ethereum)
+            
+            // Contract instance
+            const routerContract = new web3.eth.Contract(ROUTER_ABI, ROUTER_ADDRESS)
+            
+            // Path oluştur
+            let path: string[]
+            if (fromToken.symbol === 'BNB') {
+                path = ['0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c', toToken.address] // WBNB -> TOKEN
+            } else if (toToken.symbol === 'BNB') {
+                path = [fromToken.address, '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c'] // TOKEN -> WBNB
+            } else {
+                path = [fromToken.address, '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c', toToken.address] // TOKEN -> WBNB -> TOKEN
+            }
+
+            // Amount hesapla
+            const amountIn = web3.utils.toWei(fromAmount, 'ether')
+            const amountOutMin = web3.utils.toWei((parseFloat(toAmount) * (1 - slippage / 100)).toString(), 'ether')
+            const deadline = Math.floor(Date.now() / 1000) + 600 // 10 dakika
+
+            let tx
+
+            if (fromToken.symbol === 'BNB') {
+                // BNB -> Token swap
+                tx = await routerContract.methods.swapExactBNBForTokens(
+                    amountOutMin,
+                    path,
+                    account,
+                    deadline
+                ).send({
+                    from: account,
+                    value: amountIn,
+                    gas: 300000
+                })
+            } else if (toToken.symbol === 'BNB') {
+                // Token -> BNB swap
+                // Önce approve et
+                const tokenContract = new web3.eth.Contract([
+                    {
+                        "constant": false,
+                        "inputs": [
+                            {"name": "_spender", "type": "address"},
+                            {"name": "_value", "type": "uint256"}
+                        ],
+                        "name": "approve",
+                        "outputs": [{"name": "", "type": "bool"}],
+                        "type": "function"
+                    }
+                ], fromToken.address)
+                
+                await tokenContract.methods.approve(ROUTER_ADDRESS, amountIn).send({ from: account })
+                
+                tx = await routerContract.methods.swapExactTokensForBNB(
+                    amountIn,
+                    amountOutMin,
+                    path,
+                    account,
+                    deadline
+                ).send({
+                    from: account,
+                    gas: 300000
+                })
+            } else {
+                // Token -> Token swap
+                // Önce approve et
+                const tokenContract = new web3.eth.Contract([
+                    {
+                        "constant": false,
+                        "inputs": [
+                            {"name": "_spender", "type": "address"},
+                            {"name": "_value", "type": "uint256"}
+                        ],
+                        "name": "approve",
+                        "outputs": [{"name": "", "type": "bool"}],
+                        "type": "function"
+                    }
+                ], fromToken.address)
+                
+                await tokenContract.methods.approve(ROUTER_ADDRESS, amountIn).send({ from: account })
+                
+                tx = await routerContract.methods.swapExactTokensForTokens(
+                    amountIn,
+                    amountOutMin,
+                    path,
+                    account,
+                    deadline
+                ).send({
+                    from: account,
+                    gas: 300000
+                })
+            }
+
+            alert(`Swap successful! Transaction: ${tx.transactionHash}`)
+            
+            // Amounts'ları temizle
+            setFromAmount('')
+            setToAmount('')
+            
+            // Balances'ları güncelle
+            if (fromToken.symbol === 'BNB' && bnbBalance) {
+                setFromToken(prev => ({
+                    ...prev,
+                    balance: parseFloat(bnbBalance.formatted).toFixed(6)
+                }))
+            }
+
+        } catch (error: any) {
+            console.error('Swap error:', error)
+            
+            let errorMessage = 'Swap failed. Please try again.'
+            
+            if (error.message.includes('User denied')) {
+                errorMessage = 'Transaction was cancelled by user.'
+            } else if (error.message.includes('insufficient funds')) {
+                errorMessage = 'Insufficient funds for this transaction.'
+            } else if (error.message.includes('slippage')) {
+                errorMessage = 'Price moved too much. Try increasing slippage tolerance.'
+            } else if (error.message.includes('gas')) {
+                errorMessage = 'Transaction failed due to gas issues.'
+            }
+            
+            alert(errorMessage)
+        } finally {
             setLoading(false)
-        }, 2000)
+        }
     }
 
     if (!account || !isConnected) {
