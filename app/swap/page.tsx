@@ -700,6 +700,23 @@ export default function SwapPage() {
     const [showSlippageModal, setShowSlippageModal] = useState(false)
     const [customSlippageInput, setCustomSlippageInput] = useState('0.5')
 
+    // Fallback fiyatlar - PancakeSwap ile aynı
+    const getFallbackPrice = (symbol: string): number => {
+        const fallbackPrices: { [key: string]: number } = {
+            'BNB': 1276,
+            'CAKE': 3.6,
+            'USDT': 1.0,
+            'USDC': 1.0,
+            'ETH': 3500,
+            'BTCB': 95000,
+            'ADA': 0.45,
+            'DOT': 7.2,
+            'LINK': 14.5,
+            'PAYU': 0.000001
+        }
+        return fallbackPrices[symbol] || 0
+    }
+
     // Combine PancakeSwap tokens with popular tokens and custom tokens
     const pancakeTokens = allPancakeTokens.map(token => ({
         symbol: token.symbol,
@@ -777,6 +794,13 @@ export default function SwapPage() {
         return () => clearInterval(interval)
     }, [])
 
+    // Fiyat güncellendiğinde yeniden hesapla
+    useEffect(() => {
+        if (fromAmount && tokenPrices[fromToken.symbol] && tokenPrices[toToken.symbol]) {
+            calculateToAmount(fromAmount)
+        }
+    }, [tokenPrices, fromToken.symbol, toToken.symbol])
+
     const handleQuickAmount = (percentage: number) => {
         const balance = parseFloat(fromToken.balance || '0')
         const amount = (balance * percentage).toFixed(6)
@@ -790,10 +814,21 @@ export default function SwapPage() {
             return
         }
         
-        // Mock calculation - gerçekte API'den gelecek
-        const mockRate = 0.0029625 // 1 CAKE = 0.0029625 BNB
-        const calculated = (parseFloat(amount) / mockRate).toFixed(6)
-        setToAmount(calculated)
+        // Gerçek fiyat hesaplama - PancakeSwap ile aynı
+        const fromPrice = tokenPrices[fromToken.symbol]?.price || getFallbackPrice(fromToken.symbol)
+        const toPrice = tokenPrices[toToken.symbol]?.price || getFallbackPrice(toToken.symbol)
+        
+        if (fromPrice && toPrice) {
+            // USD bazında hesapla
+            const fromUSDValue = parseFloat(amount) * fromPrice
+            const toAmount = (fromUSDValue / toPrice).toFixed(6)
+            setToAmount(toAmount)
+        } else {
+            // Fallback: Mock rate
+            const mockRate = 0.0029625 // 1 CAKE = 0.0029625 BNB
+            const calculated = (parseFloat(amount) / mockRate).toFixed(6)
+            setToAmount(calculated)
+        }
     }
 
     const handleFromAmountChange = (value: string) => {
@@ -815,6 +850,10 @@ export default function SwapPage() {
                 token.balance = '0.0'
             }
             setFromToken(token)
+            // Yeniden hesapla
+            if (fromAmount) {
+                calculateToAmount(fromAmount)
+            }
         } else {
             // Update balance for 'to' token as well
             if (token.symbol === 'BNB' && bnbBalance) {
@@ -827,6 +866,10 @@ export default function SwapPage() {
                 token.balance = '0.0'
             }
             setToToken(token)
+            // Yeniden hesapla
+            if (fromAmount) {
+                calculateToAmount(fromAmount)
+            }
         }
         setShowTokenModal(false)
         setSearchTerm('')
@@ -1026,7 +1069,7 @@ export default function SwapPage() {
                                 }}
                             />
                             <USDValue>
-                                ~{(parseFloat(fromAmount || '0') * (tokenPrices[fromToken.symbol]?.price || 0)).toFixed(2)} USD
+                                ~${(parseFloat(fromAmount || '0') * (tokenPrices[fromToken.symbol]?.price || getFallbackPrice(fromToken.symbol))).toFixed(2)} USD
                                 {pricesLoading && <span style={{ color: '#1FC7D4', fontSize: '10px', marginLeft: '4px' }}>🔄</span>}
                             </USDValue>
                         </AmountInfo>
@@ -1086,7 +1129,7 @@ export default function SwapPage() {
                         <AmountInfo>
                             <Amount>{toAmount || '0.00'}</Amount>
                             <USDValue>
-                                ~{(parseFloat(toAmount || '0') * (tokenPrices[toToken.symbol]?.price || 0)).toFixed(2)} USD
+                                ~${(parseFloat(toAmount || '0') * (tokenPrices[toToken.symbol]?.price || getFallbackPrice(toToken.symbol))).toFixed(2)} USD
                                 {pricesLoading && <span style={{ color: '#1FC7D4', fontSize: '10px', marginLeft: '4px' }}>🔄</span>}
                             </USDValue>
                         </AmountInfo>
@@ -1107,15 +1150,17 @@ export default function SwapPage() {
                 </SwapButton>
 
                 {/* Conversion Rate */}
-                <ConversionRow>
-                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                        <RefreshIcon />
-                        1 CAKE ↔ 0.0029625 BNB
-                    </div>
-                    <div style={{ color: '#6e6e82' }}>
-                        Fee 0.00000998 BNB ▼
-                    </div>
-                </ConversionRow>
+                {fromAmount && toAmount && (
+                    <ConversionRow>
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <RefreshIcon />
+                            1 {fromToken.symbol} ↔ {(parseFloat(toAmount) / parseFloat(fromAmount)).toFixed(6)} {toToken.symbol}
+                        </div>
+                        <div style={{ color: '#6e6e82' }}>
+                            Fee 0.00000998 BNB ▼
+                        </div>
+                    </ConversionRow>
+                )}
 
                 {/* MEV Protect */}
                 <MEVRow>
@@ -1216,15 +1261,14 @@ export default function SwapPage() {
                                         <TokenInfoModal>
                                             <TokenSymbolModal>{token.symbol}</TokenSymbolModal>
                                             <TokenNameModal>{token.name}</TokenNameModal>
-                                            {tokenPrices[token.symbol] && (
-                                                <TokenPriceModal>
-                                                    ${tokenPrices[token.symbol].price.toFixed(4)} 
-                                                    {tokenPrices[token.symbol].change24h > 0 ? ' ↗' : ' ↘'}
-                                                    <span style={{ color: '#1FC7D4', fontSize: '10px', marginLeft: '4px' }}>
-                                                        🥞
-                                                    </span>
-                                                </TokenPriceModal>
-                                            )}
+                                            <TokenPriceModal>
+                                                ${(tokenPrices[token.symbol]?.price || getFallbackPrice(token.symbol)).toFixed(4)} 
+                                                {tokenPrices[token.symbol]?.change24h ? 
+                                                    (tokenPrices[token.symbol].change24h > 0 ? ' ↗' : ' ↘') : ''}
+                                                <span style={{ color: '#1FC7D4', fontSize: '10px', marginLeft: '4px' }}>
+                                                    🥞
+                                                </span>
+                                            </TokenPriceModal>
                                         </TokenInfoModal>
                                     </TokenItem>
                                 ))}
