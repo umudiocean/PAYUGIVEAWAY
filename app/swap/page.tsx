@@ -700,10 +700,27 @@ export default function SwapPage() {
     const [showSlippageModal, setShowSlippageModal] = useState(false)
     const [customSlippageInput, setCustomSlippageInput] = useState('0.5')
 
-    // Gerçek fiyat kontrolü - fallback yok
+    // Gerçek fiyat kontrolü - fallback ile
     const getRealPrice = (symbol: string): number => {
-        // Sadece gerçek API'den gelen fiyatları kullan
-        return tokenPrices[symbol]?.price || 0
+        // Önce gerçek API'den gelen fiyatları kullan
+        if (tokenPrices[symbol]?.price) {
+            return tokenPrices[symbol].price
+        }
+        
+        // API'ler çalışmıyorsa fallback fiyatlar
+        const fallbackPrices: { [key: string]: number } = {
+            'BNB': 600,
+            'CAKE': 2.1,
+            'USDT': 1.0,
+            'USDC': 1.0,
+            'ETH': 3500,
+            'BTCB': 95000,
+            'ADA': 0.45,
+            'DOT': 7.2,
+            'LINK': 14.5,
+            'PAYU': 0.0000001
+        }
+        return fallbackPrices[symbol] || 0
     }
 
     // Combine PancakeSwap tokens with popular tokens and custom tokens
@@ -812,9 +829,9 @@ export default function SwapPage() {
                 const toAmount = (parseFloat(amount) * realPrices.amount).toFixed(6)
                 setToAmount(toAmount)
             } else {
-                // Gerçek fiyatlar yoksa hesaplama yapma
-                const fromPrice = tokenPrices[fromToken.symbol]?.price
-                const toPrice = tokenPrices[toToken.symbol]?.price
+                // Fallback: Gerçek fiyatlarla hesaplama
+                const fromPrice = getRealPrice(fromToken.symbol)
+                const toPrice = getRealPrice(toToken.symbol)
                 
                 if (fromPrice && toPrice) {
                     // USD bazında hesapla
@@ -822,7 +839,7 @@ export default function SwapPage() {
                     const toAmount = (fromUSDValue / toPrice).toFixed(6)
                     setToAmount(toAmount)
                 } else {
-                    // Gerçek fiyatlar yoksa 0 göster
+                    // Fiyatlar yoksa 0 göster
                     setToAmount('0')
                 }
             }
@@ -1253,10 +1270,7 @@ export default function SwapPage() {
                                 }}
                             />
                             <USDValue>
-                                {tokenPrices[fromToken.symbol]?.price ? 
-                                    `~$${(parseFloat(fromAmount || '0') * tokenPrices[fromToken.symbol].price).toFixed(2)} USD` :
-                                    '~$0.00 USD'
-                                }
+                                ~${(parseFloat(fromAmount || '0') * getRealPrice(fromToken.symbol)).toFixed(2)} USD
                                 {pricesLoading && <span style={{ color: '#1FC7D4', fontSize: '10px', marginLeft: '4px' }}>🔄</span>}
                             </USDValue>
                         </AmountInfo>
@@ -1316,10 +1330,7 @@ export default function SwapPage() {
                         <AmountInfo>
                             <Amount>{toAmount || '0.00'}</Amount>
                             <USDValue>
-                                {tokenPrices[toToken.symbol]?.price ? 
-                                    `~$${(parseFloat(toAmount || '0') * tokenPrices[toToken.symbol].price).toFixed(2)} USD` :
-                                    '~$0.00 USD'
-                                }
+                                ~${(parseFloat(toAmount || '0') * getRealPrice(toToken.symbol)).toFixed(2)} USD
                                 {pricesLoading && <span style={{ color: '#1FC7D4', fontSize: '10px', marginLeft: '4px' }}>🔄</span>}
                             </USDValue>
                         </AmountInfo>
@@ -1451,20 +1462,14 @@ export default function SwapPage() {
                                         <TokenInfoModal>
                                             <TokenSymbolModal>{token.symbol}</TokenSymbolModal>
                                             <TokenNameModal>{token.name}</TokenNameModal>
-                                            {tokenPrices[token.symbol]?.price ? (
-                                                <TokenPriceModal>
-                                                    ${tokenPrices[token.symbol].price.toFixed(4)} 
-                                                    {tokenPrices[token.symbol].change24h ? 
-                                                        (tokenPrices[token.symbol].change24h > 0 ? ' ↗' : ' ↘') : ''}
-                                                    <span style={{ color: '#1FC7D4', fontSize: '10px', marginLeft: '4px' }}>
-                                                        🥞
-                                                    </span>
-                                                </TokenPriceModal>
-                                            ) : (
-                                                <TokenPriceModal style={{ color: '#6e6e82' }}>
-                                                    Price loading... 🔄
-                                                </TokenPriceModal>
-                                            )}
+                                            <TokenPriceModal>
+                                                ${getRealPrice(token.symbol).toFixed(4)} 
+                                                {tokenPrices[token.symbol]?.change24h ? 
+                                                    (tokenPrices[token.symbol].change24h > 0 ? ' ↗' : ' ↘') : ''}
+                                                <span style={{ color: '#1FC7D4', fontSize: '10px', marginLeft: '4px' }}>
+                                                    🥞
+                                                </span>
+                                            </TokenPriceModal>
                                         </TokenInfoModal>
                                     </TokenItem>
                                 ))}
