@@ -1,10 +1,10 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { useAccount, useConnect, useBalance } from 'wagmi'
+import { useAccount, useConnect, useBalance, useReadContract } from 'wagmi'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import styled from 'styled-components'
-import { fetchTokenPrices, TokenPrice } from '@/lib/priceApi'
+import { fetchTokenPrices, TokenPrice, fetchAllTokensWithPrices, PancakeSwapToken } from '@/lib/priceApi'
 
 // Type definitions
 interface Token {
@@ -418,6 +418,104 @@ const TokenPriceModal = styled.div`
     margin-top: 2px;
 `
 
+// Slippage Modal Components
+const SlippageModalOverlay = styled.div`
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+`
+
+const SlippageModalContent = styled.div`
+    background: #27262c;
+    border-radius: 16px;
+    padding: 24px;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    position: relative;
+`
+
+const SlippageModalHeader = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+`
+
+const SlippageModalTitle = styled.h2`
+    color: #ffffff;
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0;
+`
+
+const SlippageCloseButton = styled.button`
+    background: none;
+    border: none;
+    color: #ffffff;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+`
+
+const SlippageOptions = styled.div`
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+`
+
+const SlippageOptionButton = styled.button<{ $active?: boolean }>`
+    background: ${props => (props.$active ? '#1FC7D4' : '#353444')};
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 15px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s;
+
+    &:hover {
+        background: ${props => (props.$active ? '#53DEE9' : '#3e3e42')};
+    }
+`
+
+const CustomSlippageInputContainer = styled.div`
+    display: flex;
+    align-items: center;
+    background: #353444;
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin-top: 10px;
+`
+
+const CustomSlippageInput = styled.input`
+    background: none;
+    border: none;
+    color: #ffffff;
+    font-size: 16px;
+    width: 100%;
+    outline: none;
+    padding: 0;
+    margin-right: 8px;
+
+    &::placeholder {
+        color: #6e6e82;
+    }
+`
+
+const PercentageLabel = styled.span`
+    color: #ffffff;
+    font-size: 16px;
+`
+
 const CloseButton = styled.button`
     position: absolute;
     top: 16px;
@@ -439,9 +537,50 @@ export default function SwapPage() {
         address: account,
     })
     
+    // Token balances for popular tokens
+    const { data: cakeBalance } = useReadContract({
+        address: '0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82', // CAKE token address
+        abi: [{
+            "constant": true,
+            "inputs": [{"name": "_owner", "type": "address"}],
+            "name": "balanceOf",
+            "outputs": [{"name": "balance", "type": "uint256"}],
+            "payable": false,
+            "stateMutability": "view",
+            "type": "function"
+        }],
+        functionName: 'balanceOf',
+        args: account ? [account] : undefined,
+        query: {
+            enabled: !!account,
+        },
+    })
+
+    const { data: payuBalance } = useReadContract({
+        address: '0x9AeB2E6DD8d55E14292ACFCFC4077e33106e4144', // PAYU token address
+        abi: [{
+            "constant": true,
+            "inputs": [{"name": "_owner", "type": "address"}],
+            "name": "balanceOf",
+            "outputs": [{"name": "balance", "type": "uint256"}],
+            "payable": false,
+            "stateMutability": "view",
+            "type": "function"
+        }],
+        functionName: 'balanceOf',
+        args: account ? [account] : undefined,
+        query: {
+            enabled: !!account,
+        },
+    })
+    
     // Token prices state
     const [tokenPrices, setTokenPrices] = useState<{ [key: string]: TokenPrice }>({})
     const [pricesLoading, setPricesLoading] = useState(false)
+    
+    // All PancakeSwap tokens state
+    const [allPancakeTokens, setAllPancakeTokens] = useState<PancakeSwapToken[]>([])
+    const [tokensLoading, setTokensLoading] = useState(false)
     const [fromAmount, setFromAmount] = useState('')
     const [toAmount, setToAmount] = useState('')
     const [slippage, setSlippage] = useState(0.5)
@@ -556,8 +695,22 @@ export default function SwapPage() {
     const [isAddingCustomToken, setIsAddingCustomToken] = useState(false)
     const [customTokenAddress, setCustomTokenAddress] = useState('')
     const [customTokenLoading, setCustomTokenLoading] = useState(false)
+    
+    // Slippage modal states
+    const [showSlippageModal, setShowSlippageModal] = useState(false)
+    const [customSlippageInput, setCustomSlippageInput] = useState('0.5')
 
-    const allTokens = [...popularTokens, ...customTokens]
+    // Combine PancakeSwap tokens with popular tokens and custom tokens
+    const pancakeTokens = allPancakeTokens.map(token => ({
+        symbol: token.symbol,
+        name: token.name,
+        address: token.address,
+        decimals: 18, // Most BSC tokens use 18 decimals
+        logo: token.logoURI || `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/${token.address}/logo.png`,
+        balance: '0.0' // Will be updated when wallet connects
+    }))
+
+    const allTokens = [...popularTokens, ...pancakeTokens, ...customTokens]
 
     // Update BNB balance when wallet connects
     useEffect(() => {
@@ -569,25 +722,57 @@ export default function SwapPage() {
         }
     }, [bnbBalance, fromToken.symbol])
 
-    // Fetch token prices on component mount and periodically
+    // Update CAKE balance when wallet connects
     useEffect(() => {
-        const fetchPrices = async () => {
+        if (cakeBalance !== undefined && fromToken.symbol === 'CAKE') {
+            setFromToken(prev => ({
+                ...prev,
+                balance: (parseFloat(cakeBalance.toString()) / (10 ** 18)).toFixed(6)
+            }))
+        }
+    }, [cakeBalance, fromToken.symbol])
+
+    // Update PAYU balance when wallet connects
+    useEffect(() => {
+        if (payuBalance !== undefined && fromToken.symbol === 'PAYU') {
+            setFromToken(prev => ({
+                ...prev,
+                balance: (parseFloat(payuBalance.toString()) / (10 ** 18)).toFixed(6)
+            }))
+        }
+    }, [payuBalance, fromToken.symbol])
+
+    // Fetch all tokens and prices on component mount
+    useEffect(() => {
+        const fetchAllData = async () => {
+            setTokensLoading(true)
             setPricesLoading(true)
+            
             try {
-                const tokens = ['BNB', 'CAKE', 'USDT', 'USDC', 'ETH', 'BTCB', 'ADA', 'DOT', 'LINK', 'PAYU']
-                const prices = await fetchTokenPrices(tokens)
+                // Tüm tokenları ve fiyatlarını çek
+                const { tokens, prices } = await fetchAllTokensWithPrices()
+                
+                setAllPancakeTokens(tokens)
                 setTokenPrices(prices)
+                
+                console.log(`Loaded ${tokens.length} tokens from PancakeSwap`)
             } catch (error) {
-                console.error('Failed to fetch token prices:', error)
+                console.error('Failed to fetch tokens and prices:', error)
+                
+                // Fallback: sadece temel tokenları çek
+                const basicTokens = ['BNB', 'CAKE', 'USDT', 'USDC', 'ETH', 'BTCB', 'ADA', 'DOT', 'LINK', 'PAYU']
+                const prices = await fetchTokenPrices(basicTokens)
+                setTokenPrices(prices)
             } finally {
+                setTokensLoading(false)
                 setPricesLoading(false)
             }
         }
 
-        fetchPrices()
+        fetchAllData()
         
-        // Her 15 saniyede bir fiyatları güncelle (PancakeSwap gibi hızlı)
-        const interval = setInterval(fetchPrices, 15000)
+        // Her 30 saniyede bir tokenları ve fiyatları güncelle
+        const interval = setInterval(fetchAllData, 30000)
         
         return () => clearInterval(interval)
     }, [])
@@ -618,17 +803,29 @@ export default function SwapPage() {
 
     const handleTokenSelect = (token: any) => {
         if (selectingToken === 'from') {
-            // Update balance for BNB
+            // Update balance based on token type
             if (token.symbol === 'BNB' && bnbBalance) {
                 token.balance = parseFloat(bnbBalance.formatted).toFixed(6)
+            } else if (token.symbol === 'CAKE' && cakeBalance !== undefined) {
+                token.balance = (parseFloat(cakeBalance.toString()) / (10 ** 18)).toFixed(6)
+            } else if (token.symbol === 'PAYU' && payuBalance !== undefined) {
+                token.balance = (parseFloat(payuBalance.toString()) / (10 ** 18)).toFixed(6)
             } else {
-                // For other tokens, show 0.0 balance (you can add real balance fetching here later)
+                // For other tokens, show 0.0 balance
                 token.balance = '0.0'
             }
             setFromToken(token)
         } else {
-            // For 'to' token, also set balance to 0.0 for now
-            token.balance = '0.0'
+            // Update balance for 'to' token as well
+            if (token.symbol === 'BNB' && bnbBalance) {
+                token.balance = parseFloat(bnbBalance.formatted).toFixed(6)
+            } else if (token.symbol === 'CAKE' && cakeBalance !== undefined) {
+                token.balance = (parseFloat(cakeBalance.toString()) / (10 ** 18)).toFixed(6)
+            } else if (token.symbol === 'PAYU' && payuBalance !== undefined) {
+                token.balance = (parseFloat(payuBalance.toString()) / (10 ** 18)).toFixed(6)
+            } else {
+                token.balance = '0.0'
+            }
             setToToken(token)
         }
         setShowTokenModal(false)
@@ -899,7 +1096,7 @@ export default function SwapPage() {
                 {/* Slippage */}
                 <SlippageRow>
                     <Label>Slippage Tolerance</Label>
-                    <SlippageValue>
+                    <SlippageValue onClick={() => setShowSlippageModal(true)}>
                         Auto: {slippage}% ✏️
                     </SlippageValue>
                 </SlippageRow>
@@ -938,6 +1135,7 @@ export default function SwapPage() {
                     <CloseButton onClick={() => setShowTokenModal(false)}>×</CloseButton>
                     <h3 style={{ color: '#ffffff', marginBottom: '16px' }}>
                         Select {selectingToken === 'from' ? 'From' : 'To'} Token
+                        {tokensLoading && <span style={{ color: '#1FC7D4', fontSize: '12px', marginLeft: '8px' }}>🔄 Loading...</span>}
                     </h3>
                     <TokenSearch
                         placeholder="Search name or paste address"
@@ -987,33 +1185,110 @@ export default function SwapPage() {
                     )}
                     
                     <TokenList>
-                        {filteredTokens.map((token, index) => (
-                            <TokenItem key={index} onClick={() => handleTokenSelect(token)}>
-                                <TokenLogoImg 
-                                    src={token.logo} 
-                                    alt={token.symbol}
-                                    onError={(e) => {
-                                        e.currentTarget.src = `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/info/logo.png`
-                                    }}
-                                />
-                                <TokenInfoModal>
-                                    <TokenSymbolModal>{token.symbol}</TokenSymbolModal>
-                                    <TokenNameModal>{token.name}</TokenNameModal>
-                                    {tokenPrices[token.symbol] && (
-                                        <TokenPriceModal>
-                                            ${tokenPrices[token.symbol].price.toFixed(4)} 
-                                            {tokenPrices[token.symbol].change24h > 0 ? ' ↗' : ' ↘'}
-                                            <span style={{ color: '#1FC7D4', fontSize: '10px', marginLeft: '4px' }}>
-                                                🥞 PancakeSwap
-                                            </span>
-                                        </TokenPriceModal>
-                                    )}
-                                </TokenInfoModal>
-                            </TokenItem>
-                        ))}
+                        {tokensLoading ? (
+                            <div style={{ 
+                                textAlign: 'center', 
+                                color: '#1FC7D4', 
+                                padding: '20px',
+                                fontSize: '14px'
+                            }}>
+                                🔄 Loading PancakeSwap tokens...
+                            </div>
+                        ) : (
+                            <>
+                                <div style={{ 
+                                    color: '#6e6e82', 
+                                    fontSize: '12px', 
+                                    marginBottom: '10px',
+                                    textAlign: 'center'
+                                }}>
+                                    {filteredTokens.length} tokens available • 🥞 PancakeSwap
+                                </div>
+                                {filteredTokens.map((token, index) => (
+                                    <TokenItem key={`${token.address}-${index}`} onClick={() => handleTokenSelect(token)}>
+                                        <TokenLogoImg 
+                                            src={token.logo} 
+                                            alt={token.symbol}
+                                            onError={(e) => {
+                                                e.currentTarget.src = `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/info/logo.png`
+                                            }}
+                                        />
+                                        <TokenInfoModal>
+                                            <TokenSymbolModal>{token.symbol}</TokenSymbolModal>
+                                            <TokenNameModal>{token.name}</TokenNameModal>
+                                            {tokenPrices[token.symbol] && (
+                                                <TokenPriceModal>
+                                                    ${tokenPrices[token.symbol].price.toFixed(4)} 
+                                                    {tokenPrices[token.symbol].change24h > 0 ? ' ↗' : ' ↘'}
+                                                    <span style={{ color: '#1FC7D4', fontSize: '10px', marginLeft: '4px' }}>
+                                                        🥞
+                                                    </span>
+                                                </TokenPriceModal>
+                                            )}
+                                        </TokenInfoModal>
+                                    </TokenItem>
+                                ))}
+                            </>
+                        )}
                     </TokenList>
                 </TokenModalContent>
             </TokenModal>
+
+            {/* Slippage Setting Modal */}
+            {showSlippageModal && (
+                <SlippageModalOverlay onClick={() => setShowSlippageModal(false)}>
+                    <SlippageModalContent onClick={e => e.stopPropagation()}>
+                        <SlippageModalHeader>
+                            <SlippageModalTitle>Slippage Setting</SlippageModalTitle>
+                            <SlippageCloseButton onClick={() => setShowSlippageModal(false)}>
+                                ×
+                            </SlippageCloseButton>
+                        </SlippageModalHeader>
+                        <SlippageOptions>
+                            <SlippageOptionButton
+                                $active={slippage === 0.5}
+                                onClick={() => {
+                                    setSlippage(0.5)
+                                    setCustomSlippageInput('0.5')
+                                    setShowSlippageModal(false)
+                                }}
+                            >
+                                Auto
+                            </SlippageOptionButton>
+                            {['0.1', '0.5', '1.0'].map(option => (
+                                <SlippageOptionButton
+                                    key={option}
+                                    $active={slippage === parseFloat(option)}
+                                    onClick={() => {
+                                        setSlippage(parseFloat(option))
+                                        setCustomSlippageInput(option)
+                                        setShowSlippageModal(false)
+                                    }}
+                                >
+                                    {option}%
+                                </SlippageOptionButton>
+                            ))}
+                        </SlippageOptions>
+                        <CustomSlippageInputContainer>
+                            <CustomSlippageInput
+                                type="number"
+                                step="0.01"
+                                min="0.01"
+                                placeholder="Custom slippage"
+                                value={customSlippageInput}
+                                onChange={(e) => {
+                                    const value = e.target.value
+                                    setCustomSlippageInput(value)
+                                    if (value && !isNaN(parseFloat(value))) {
+                                        setSlippage(parseFloat(value))
+                                    }
+                                }}
+                            />
+                            <PercentageLabel>%</PercentageLabel>
+                        </CustomSlippageInputContainer>
+                    </SlippageModalContent>
+                </SlippageModalOverlay>
+            )}
         </SwapContainer>
     )
 }

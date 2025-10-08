@@ -201,3 +201,97 @@ export async function fetchTokenPrice(tokenSymbol: string): Promise<TokenPrice |
   const prices = await fetchTokenPrices([tokenSymbol]);
   return prices[tokenSymbol] || null;
 }
+
+// PancakeSwap'dan tüm tokenları çek (fiyat, isim, logo ile birlikte)
+export interface PancakeSwapToken {
+  address: string;
+  symbol: string;
+  name: string;
+  price: string;
+  price_BNB: string;
+  logoURI?: string;
+}
+
+export interface AllTokensResponse {
+  [address: string]: PancakeSwapToken;
+}
+
+export async function fetchAllTokensFromPancakeSwap(): Promise<PancakeSwapToken[]> {
+  try {
+    // PancakeSwap'ın tüm tokenları API'si
+    const response = await fetch('https://tokens.pancakeswap.finance/pancakeswap-extended.json');
+    
+    if (!response.ok) {
+      // Fallback: PancakeSwap Info API
+      return await fetchAllTokensFromPancakeSwapInfo();
+    }
+
+    const data = await response.json();
+    
+    // Token listesi formatını kontrol et
+    if (data.tokens && Array.isArray(data.tokens)) {
+      return data.tokens.map((token: any) => ({
+        address: token.address,
+        symbol: token.symbol,
+        name: token.name,
+        price: '0', // Bu API'de fiyat yok, ayrıca çekeceğiz
+        price_BNB: '0',
+        logoURI: token.logoURI
+      }));
+    }
+
+    return [];
+  } catch (error) {
+    console.error('Error fetching tokens from PancakeSwap:', error);
+    return await fetchAllTokensFromPancakeSwapInfo();
+  }
+}
+
+// PancakeSwap Info API'den tokenları çek (fallback)
+async function fetchAllTokensFromPancakeSwapInfo(): Promise<PancakeSwapToken[]> {
+  try {
+    const response = await fetch('https://api.pancakeswap.info/api/v2/tokens');
+    
+    if (!response.ok) {
+      throw new Error('PancakeSwap Info API failed');
+    }
+
+    const data = await response.json();
+    const tokens: PancakeSwapToken[] = [];
+
+    if (data.data && typeof data.data === 'object') {
+      Object.entries(data.data).forEach(([address, tokenData]: [string, any]) => {
+        tokens.push({
+          address: address,
+          symbol: tokenData.symbol || 'UNKNOWN',
+          name: tokenData.name || 'Unknown Token',
+          price: tokenData.price || '0',
+          price_BNB: tokenData.price_BNB || '0',
+          logoURI: `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/${address}/logo.png`
+        });
+      });
+    }
+
+    return tokens;
+  } catch (error) {
+    console.error('Error fetching tokens from PancakeSwap Info:', error);
+    return [];
+  }
+}
+
+// Tüm tokenları fiyatlarla birlikte çek
+export async function fetchAllTokensWithPrices(): Promise<{ tokens: PancakeSwapToken[], prices: { [key: string]: TokenPrice } }> {
+  try {
+    // Önce tüm tokenları çek
+    const tokens = await fetchAllTokensFromPancakeSwap();
+    
+    // Sonra fiyatları çek
+    const symbols = tokens.map(token => token.symbol);
+    const prices = await fetchTokenPrices(symbols);
+
+    return { tokens, prices };
+  } catch (error) {
+    console.error('Error fetching all tokens with prices:', error);
+    return { tokens: [], prices: {} };
+  }
+}
