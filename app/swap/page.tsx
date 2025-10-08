@@ -583,7 +583,7 @@ export default function SwapPage() {
     const [tokensLoading, setTokensLoading] = useState(false)
     const [fromAmount, setFromAmount] = useState('')
     const [toAmount, setToAmount] = useState('')
-    const [slippage, setSlippage] = useState(0.5)
+    const [slippage, setSlippage] = useState(2.0) // Increased default slippage
     const [mevProtect, setMevProtect] = useState(false)
     const [loading, setLoading] = useState(false)
     const [showTokenModal, setShowTokenModal] = useState(false)
@@ -613,7 +613,7 @@ export default function SwapPage() {
             symbol: 'BNB',
             name: 'BNB',
             address: '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c',
-            decimals: 12, // 12 decimal kullanıyoruz
+            decimals: 18, // BNB uses 18 decimals
             logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c/logo.png',
             balance: '0.0'
         },
@@ -621,7 +621,7 @@ export default function SwapPage() {
             symbol: 'PAYU',
             name: 'PAYU Token',
             address: '0x9AeB2E6DD8d55E14292ACFCFC4077e33106e4144',
-            decimals: 12, // PAYU token 12 decimal kullanıyor
+            decimals: 18, // PAYU token uses 18 decimals
             logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0x9AeB2E6DD8d55E14292ACFCFC4077e33106e4144/logo.png',
             balance: '0.0'
         },
@@ -629,7 +629,7 @@ export default function SwapPage() {
             symbol: 'CAKE',
             name: 'PancakeSwap Token',
             address: '0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82',
-            decimals: 12, // 12 decimal kullanıyoruz
+            decimals: 18, // CAKE uses 18 decimals
             logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82/logo.png',
             balance: '0.0'
         },
@@ -637,7 +637,7 @@ export default function SwapPage() {
             symbol: 'USDT',
             name: 'Tether USD',
             address: '0x55d398326f99059fF775485246999027B3197955',
-            decimals: 12, // 12 decimal kullanıyoruz
+            decimals: 18, // USDT on BSC uses 18 decimals
             logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0x55d398326f99059fF775485246999027B3197955/logo.png',
             balance: '0.0'
         },
@@ -645,7 +645,7 @@ export default function SwapPage() {
             symbol: 'USDC',
             name: 'USD Coin',
             address: '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d',
-            decimals: 12, // 12 decimal kullanıyoruz
+            decimals: 18, // USDC on BSC uses 18 decimals
             logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d/logo.png',
             balance: '0.0'
         },
@@ -653,7 +653,7 @@ export default function SwapPage() {
             symbol: 'ETH',
             name: 'Ethereum Token',
             address: '0x2170Ed0880ac9A755fd29B2688956BD959F933F8',
-            decimals: 12, // 12 decimal kullanıyoruz
+            decimals: 18, // ETH uses 18 decimals
             logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0x2170Ed0880ac9A755fd29B2688956BD959F933F8/logo.png',
             balance: '0.0'
         },
@@ -661,7 +661,7 @@ export default function SwapPage() {
             symbol: 'BTCB',
             name: 'Bitcoin BEP2',
             address: '0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c',
-            decimals: 12, // 12 decimal kullanıyoruz
+            decimals: 18, // BTCB uses 18 decimals
             logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c/logo.png',
             balance: '0.0'
         },
@@ -669,7 +669,7 @@ export default function SwapPage() {
             symbol: 'ADA',
             name: 'Cardano Token',
             address: '0x3EE2200Efb3400fAbB9AacF31297cBdD1d435D47',
-            decimals: 12, // 12 decimal kullanıyoruz
+            decimals: 18, // ADA uses 18 decimals
             logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0x3EE2200Efb3400fAbB9AacF31297cBdD1d435D47/logo.png',
             balance: '0.0'
         },
@@ -677,7 +677,7 @@ export default function SwapPage() {
             symbol: 'DOT',
             name: 'Polkadot Token',
             address: '0x7083609fCE4d1d8Dc0C979AAb8c869Ea2C873402',
-            decimals: 12, // 12 decimal kullanıyoruz
+            decimals: 18, // DOT uses 18 decimals
             logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0x7083609fCE4d1d8Dc0C979AAb8c869Ea2C873402/logo.png',
             balance: '0.0'
         },
@@ -685,7 +685,7 @@ export default function SwapPage() {
             symbol: 'LINK',
             name: 'ChainLink Token',
             address: '0xF8A0BF9cF54Bb92F17374d9e9A321E6a111a51bD',
-            decimals: 12, // 12 decimal kullanıyoruz
+            decimals: 18, // LINK uses 18 decimals
             logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0xF8A0BF9cF54Bb92F17374d9e9A321E6a111a51bD/logo.png',
             balance: '0.0'
         }
@@ -698,7 +698,7 @@ export default function SwapPage() {
 
     // Slippage modal states
     const [showSlippageModal, setShowSlippageModal] = useState(false)
-    const [customSlippageInput, setCustomSlippageInput] = useState('0.5')
+    const [customSlippageInput, setCustomSlippageInput] = useState('2.0')
 
     // Gerçek fiyat kontrolü - fallback ile
     const getRealPrice = (symbol: string): number => {
@@ -728,7 +728,7 @@ export default function SwapPage() {
         symbol: token.symbol,
         name: token.name,
         address: token.address,
-        decimals: 12, // Tüm tokenlar için 12 decimal kullanıyoruz
+        decimals: 18, // Most tokens use 18 decimals
         logo: token.logoURI || `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/${token.address}/logo.png`,
         balance: '0.0' // Will be updated when wallet connects
     }))
@@ -750,7 +750,7 @@ export default function SwapPage() {
         if (cakeBalance !== undefined && fromToken.symbol === 'CAKE') {
             setFromToken(prev => ({
                 ...prev,
-                balance: (parseFloat(cakeBalance.toString()) / (10 ** 12)).toFixed(6) // 12 decimal
+                balance: (parseFloat(cakeBalance.toString()) / (10 ** 18)).toFixed(6) // 18 decimal
             }))
         }
     }, [cakeBalance, fromToken.symbol])
@@ -760,7 +760,7 @@ export default function SwapPage() {
         if (payuBalance !== undefined && fromToken.symbol === 'PAYU') {
             setFromToken(prev => ({
                 ...prev,
-                balance: (parseFloat(payuBalance.toString()) / (10 ** 12)).toFixed(6) // 12 decimal
+                balance: (parseFloat(payuBalance.toString()) / (10 ** 18)).toFixed(6) // 18 decimal
             }))
         }
     }, [payuBalance, fromToken.symbol])
@@ -860,9 +860,9 @@ export default function SwapPage() {
             if (token.symbol === 'BNB' && bnbBalance) {
                 token.balance = parseFloat(bnbBalance.formatted).toFixed(6)
             } else if (token.symbol === 'CAKE' && cakeBalance !== undefined) {
-                token.balance = (parseFloat(cakeBalance.toString()) / (10 ** 12)).toFixed(6) // 12 decimal
+                token.balance = (parseFloat(cakeBalance.toString()) / (10 ** 18)).toFixed(6) // 18 decimal
             } else if (token.symbol === 'PAYU' && payuBalance !== undefined) {
-                token.balance = (parseFloat(payuBalance.toString()) / (10 ** 12)).toFixed(6) // 12 decimal
+                token.balance = (parseFloat(payuBalance.toString()) / (10 ** 18)).toFixed(6) // 18 decimal
             } else {
                 // For other tokens, show 0.0 balance
                 token.balance = '0.0'
@@ -877,9 +877,9 @@ export default function SwapPage() {
             if (token.symbol === 'BNB' && bnbBalance) {
                 token.balance = parseFloat(bnbBalance.formatted).toFixed(6)
             } else if (token.symbol === 'CAKE' && cakeBalance !== undefined) {
-                token.balance = (parseFloat(cakeBalance.toString()) / (10 ** 12)).toFixed(6) // 12 decimal
+                token.balance = (parseFloat(cakeBalance.toString()) / (10 ** 18)).toFixed(6) // 18 decimal
             } else if (token.symbol === 'PAYU' && payuBalance !== undefined) {
-                token.balance = (parseFloat(payuBalance.toString()) / (10 ** 12)).toFixed(6) // 12 decimal
+                token.balance = (parseFloat(payuBalance.toString()) / (10 ** 18)).toFixed(6) // 18 decimal
             } else {
                 token.balance = '0.0'
             }
@@ -959,7 +959,7 @@ export default function SwapPage() {
                 symbol: symbol as string,
                 name: name as string,
                 address: customTokenAddress,
-                decimals: 12, // Tüm custom tokenlar için 12 decimal
+                decimals: parseInt(decimals as string) || 18, // Use actual decimals from contract
                 logo: `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/${customTokenAddress}/logo.png`,
                 balance: '0.0'
             }
@@ -1083,12 +1083,12 @@ export default function SwapPage() {
             const fromDecimals = fromToken.decimals || 18
             const toDecimals = toToken.decimals || 18
             
-            // Gerçek decimal ile amount hesapla - Web3.js uyumlu
+            // Gerçek decimal ile amount hesapla
             const amountIn = web3.utils.toWei(fromAmount, 'ether')
-            // Slippage tolerance'ı artır - minimum %1
-            const effectiveSlippage = Math.max(slippage, 1.0)
+            // Slippage tolerance'ı artır - minimum %2
+            const effectiveSlippage = Math.max(slippage, 2.0)
             const amountOutMin = web3.utils.toWei((parseFloat(toAmount) * (1 - effectiveSlippage / 100)).toString(), 'ether')
-            const deadline = Math.floor(Date.now() / 1000) + 1200 // 20 dakika
+            const deadline = Math.floor(Date.now() / 1000) + 1800 // 30 dakika
 
             let tx
 
@@ -1102,7 +1102,8 @@ export default function SwapPage() {
                 ).send({
                     from: account,
                     value: amountIn,
-                    gas: '500000'
+                    gas: '800000', // Increased gas limit
+                    gasPrice: web3.utils.toWei('5', 'gwei') // Set gas price
                 })
             } else if (toToken.symbol === 'BNB') {
                 // Token -> BNB swap
@@ -1120,7 +1121,11 @@ export default function SwapPage() {
                     }
                 ], fromToken.address)
                 
-                await tokenContract.methods.approve(ROUTER_ADDRESS, amountIn).send({ from: account })
+                await tokenContract.methods.approve(ROUTER_ADDRESS, amountIn).send({ 
+                    from: account,
+                    gas: '200000',
+                    gasPrice: web3.utils.toWei('5', 'gwei')
+                })
                 
                 tx = await routerContract.methods.swapExactTokensForBNB(
                     amountIn,
@@ -1130,7 +1135,8 @@ export default function SwapPage() {
                     deadline
                 ).send({
                     from: account,
-                    gas: '500000'
+                    gas: '800000', // Increased gas limit
+                    gasPrice: web3.utils.toWei('5', 'gwei') // Set gas price
                 })
             } else {
                 // Token -> Token swap
@@ -1148,7 +1154,11 @@ export default function SwapPage() {
                     }
                 ], fromToken.address)
                 
-                await tokenContract.methods.approve(ROUTER_ADDRESS, amountIn).send({ from: account })
+                await tokenContract.methods.approve(ROUTER_ADDRESS, amountIn).send({ 
+                    from: account,
+                    gas: '200000',
+                    gasPrice: web3.utils.toWei('5', 'gwei')
+                })
                 
                 tx = await routerContract.methods.swapExactTokensForTokens(
                     amountIn,
@@ -1158,7 +1168,8 @@ export default function SwapPage() {
                     deadline
                 ).send({
                     from: account,
-                    gas: '500000'
+                    gas: '800000', // Increased gas limit
+                    gasPrice: web3.utils.toWei('5', 'gwei') // Set gas price
                 })
             }
 
@@ -1505,16 +1516,16 @@ export default function SwapPage() {
                         </SlippageModalHeader>
                         <SlippageOptions>
                             <SlippageOptionButton
-                                $active={slippage === 0.5}
+                                $active={slippage === 2.0}
                                 onClick={() => {
-                                    setSlippage(0.5)
-                                    setCustomSlippageInput('0.5')
+                                    setSlippage(2.0)
+                                    setCustomSlippageInput('2.0')
                                     setShowSlippageModal(false)
                                 }}
                             >
                                 Auto
                             </SlippageOptionButton>
-                            {['0.1', '0.5', '1.0'].map(option => (
+                            {['1.0', '2.0', '5.0'].map(option => (
                                 <SlippageOptionButton
                                     key={option}
                                     $active={slippage === parseFloat(option)}
