@@ -621,7 +621,7 @@ export default function SwapPage() {
             symbol: 'PAYU',
             name: 'PAYU Token',
             address: '0x9AeB2E6DD8d55E14292ACFCFC4077e33106e4144',
-            decimals: 18,
+            decimals: 9, // PAYU token 9 decimal kullanıyor
             logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0x9AeB2E6DD8d55E14292ACFCFC4077e33106e4144/logo.png',
             balance: '0.0'
         },
@@ -712,7 +712,7 @@ export default function SwapPage() {
             'ADA': 0.45,
             'DOT': 7.2,
             'LINK': 14.5,
-            'PAYU': 0.000001
+            'PAYU': 0.0000001 // PAYU için daha gerçekçi fiyat
         }
         return fallbackPrices[symbol] || 0
     }
@@ -754,7 +754,7 @@ export default function SwapPage() {
         if (payuBalance !== undefined && fromToken.symbol === 'PAYU') {
             setFromToken(prev => ({
                 ...prev,
-                balance: (parseFloat(payuBalance.toString()) / (10 ** 18)).toFixed(6)
+                balance: (parseFloat(payuBalance.toString()) / (10 ** 9)).toFixed(6) // PAYU 9 decimal
             }))
         }
     }, [payuBalance, fromToken.symbol])
@@ -844,7 +844,7 @@ export default function SwapPage() {
             } else if (token.symbol === 'CAKE' && cakeBalance !== undefined) {
                 token.balance = (parseFloat(cakeBalance.toString()) / (10 ** 18)).toFixed(6)
             } else if (token.symbol === 'PAYU' && payuBalance !== undefined) {
-                token.balance = (parseFloat(payuBalance.toString()) / (10 ** 18)).toFixed(6)
+                token.balance = (parseFloat(payuBalance.toString()) / (10 ** 9)).toFixed(6) // PAYU 9 decimal
             } else {
                 // For other tokens, show 0.0 balance
                 token.balance = '0.0'
@@ -861,7 +861,7 @@ export default function SwapPage() {
             } else if (token.symbol === 'CAKE' && cakeBalance !== undefined) {
                 token.balance = (parseFloat(cakeBalance.toString()) / (10 ** 18)).toFixed(6)
             } else if (token.symbol === 'PAYU' && payuBalance !== undefined) {
-                token.balance = (parseFloat(payuBalance.toString()) / (10 ** 18)).toFixed(6)
+                token.balance = (parseFloat(payuBalance.toString()) / (10 ** 9)).toFixed(6) // PAYU 9 decimal
             } else {
                 token.balance = '0.0'
             }
@@ -1026,7 +1026,11 @@ export default function SwapPage() {
                     <QuickButtons>
                         <QuickButton onClick={() => handleQuickAmount(0.25)}>25%</QuickButton>
                         <QuickButton onClick={() => handleQuickAmount(0.5)}>50%</QuickButton>
-                        <QuickButton isMax onClick={() => setFromAmount(fromToken.balance || '0')}>MAX</QuickButton>
+                        <QuickButton isMax onClick={() => {
+                            const maxAmount = fromToken.balance || '0'
+                            setFromAmount(maxAmount)
+                            calculateToAmount(maxAmount)
+                        }}>MAX</QuickButton>
                     </QuickButtons>
                 </HeaderRow>
 
