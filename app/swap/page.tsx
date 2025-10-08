@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useAccount, useConnect } from 'wagmi'
+import { ConnectButton } from '@rainbow-me/rainbowkit'
 import styled from 'styled-components'
 
 // Type definitions
@@ -423,7 +424,7 @@ const CloseButton = styled.button`
 
 // Main Component
 export default function SwapPage() {
-    const { address: account } = useAccount()
+    const { address: account, isConnected, isConnecting } = useAccount()
     const { connect, connectors } = useConnect()
     const [fromAmount, setFromAmount] = useState('')
     const [toAmount, setToAmount] = useState('')
@@ -693,18 +694,20 @@ export default function SwapPage() {
         }, 2000)
     }
 
-    if (!account) {
+    if (!account || !isConnected) {
         return (
             <SwapContainer>
                 <SwapCard>
-                    <WalletButton onClick={() => {
-                        const metaMaskConnector = connectors.find(connector => connector.name === 'MetaMask')
-                        if (metaMaskConnector) {
-                            connect({ connector: metaMaskConnector })
-                        }
-                    }}>
-                        Connect Wallet
-                    </WalletButton>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 0', gap: '20px' }}>
+                        <h2 style={{ color: '#ffffff', marginBottom: '20px' }}>Connect Your Wallet</h2>
+                        <ConnectButton />
+                        {isConnecting && (
+                            <p style={{ color: '#1FC7D4', fontSize: '14px' }}>Connecting...</p>
+                        )}
+                        <p style={{ color: '#b8add2', fontSize: '12px', textAlign: 'center', maxWidth: '300px' }}>
+                            Connect your wallet to start swapping tokens on BNB Smart Chain
+                        </p>
+                    </div>
                 </SwapCard>
             </SwapContainer>
         )
