@@ -707,9 +707,9 @@ export default function SwapPage() {
             return tokenPrices[symbol].price
         }
         
-        // API'ler çalışmıyorsa fallback fiyatlar
+        // API'ler çalışmıyorsa fallback fiyatlar - PancakeSwap ile aynı
         const fallbackPrices: { [key: string]: number } = {
-            'BNB': 600,
+            'BNB': 1285, // PancakeSwap'ta 0.009074 BNB = ~$11.66 USD
             'CAKE': 2.1,
             'USDT': 1.0,
             'USDC': 1.0,

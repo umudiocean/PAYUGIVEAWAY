@@ -68,9 +68,9 @@ export async function fetchTokenPrices(tokens: string[]): Promise<{ [key: string
   } catch (error) {
     console.error('Error fetching token prices:', error);
     
-    // API'ler çalışmıyorsa gerçekçi fallback fiyatlar
+    // API'ler çalışmıyorsa gerçekçi fallback fiyatlar - PancakeSwap ile aynı
     const fallbackPrices: { [key: string]: TokenPrice } = {
-      'BNB': { symbol: 'BNB', price: 600, change24h: 0 },
+      'BNB': { symbol: 'BNB', price: 1285, change24h: 0 }, // PancakeSwap'ta 0.009074 BNB = ~$11.66 USD
       'CAKE': { symbol: 'CAKE', price: 2.1, change24h: 0 },
       'USDT': { symbol: 'USDT', price: 1.0, change24h: 0 },
       'USDC': { symbol: 'USDC', price: 1.0, change24h: 0 },
