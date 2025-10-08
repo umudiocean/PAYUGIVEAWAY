@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { useAccount, useConnect, useBalance, useReadContract } from 'wagmi'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import styled from 'styled-components'
-import { fetchTokenPrices, TokenPrice, fetchAllTokensWithPrices, PancakeSwapToken } from '@/lib/priceApi'
+import { fetchTokenPrices, TokenPrice, fetchAllTokensWithPrices, PancakeSwapToken, fetchPancakeSwapRealPrices } from '@/lib/priceApi'
 
 // Type definitions
 interface Token {
@@ -808,26 +808,40 @@ export default function SwapPage() {
         calculateToAmount(amount)
     }
 
-    const calculateToAmount = (amount: string) => {
+    const calculateToAmount = async (amount: string) => {
         if (!amount || parseFloat(amount) <= 0) {
             setToAmount('')
             return
         }
         
-        // Gerçek fiyat hesaplama - PancakeSwap ile aynı
-        const fromPrice = tokenPrices[fromToken.symbol]?.price || getFallbackPrice(fromToken.symbol)
-        const toPrice = tokenPrices[toToken.symbol]?.price || getFallbackPrice(toToken.symbol)
-        
-        if (fromPrice && toPrice) {
-            // USD bazında hesapla
-            const fromUSDValue = parseFloat(amount) * fromPrice
-            const toAmount = (fromUSDValue / toPrice).toFixed(6)
-            setToAmount(toAmount)
-        } else {
-            // Fallback: Mock rate
-            const mockRate = 0.0029625 // 1 CAKE = 0.0029625 BNB
-            const calculated = (parseFloat(amount) / mockRate).toFixed(6)
-            setToAmount(calculated)
+        try {
+            // PancakeSwap'dan gerçek fiyat çek
+            const realPrices = await fetchPancakeSwapRealPrices(fromToken.symbol, toToken.symbol)
+            
+            if (realPrices) {
+                // PancakeSwap'ın gerçek exchange rate'ini kullan
+                const toAmount = (parseFloat(amount) * realPrices.amount).toFixed(6)
+                setToAmount(toAmount)
+            } else {
+                // Fallback: Mock hesaplama
+                const fromPrice = tokenPrices[fromToken.symbol]?.price || getFallbackPrice(fromToken.symbol)
+                const toPrice = tokenPrices[toToken.symbol]?.price || getFallbackPrice(toToken.symbol)
+                
+                if (fromPrice && toPrice) {
+                    // USD bazında hesapla
+                    const fromUSDValue = parseFloat(amount) * fromPrice
+                    const toAmount = (fromUSDValue / toPrice).toFixed(6)
+                    setToAmount(toAmount)
+                } else {
+                    // Fallback: Mock rate
+                    const mockRate = 0.0029625 // 1 CAKE = 0.0029625 BNB
+                    const calculated = (parseFloat(amount) / mockRate).toFixed(6)
+                    setToAmount(calculated)
+                }
+            }
+        } catch (error) {
+            console.error('Error calculating amount:', error)
+            setToAmount('')
         }
     }
 

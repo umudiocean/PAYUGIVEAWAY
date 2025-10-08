@@ -295,3 +295,68 @@ export async function fetchAllTokensWithPrices(): Promise<{ tokens: PancakeSwapT
     return { tokens: [], prices: {} };
   }
 }
+
+// PancakeSwap'dan gerçek fiyat çekme fonksiyonu
+export async function fetchPancakeSwapRealPrices(fromToken: string, toToken: string): Promise<{ price: number; amount: number } | null> {
+  try {
+    // PancakeSwap V2 API'den gerçek fiyat çek
+    const fromAddress = getTokenAddress(fromToken);
+    const toAddress = getTokenAddress(toToken);
+    
+    if (!fromAddress || !toAddress) {
+      return null;
+    }
+
+    // PancakeSwap V2 API
+    const response = await fetch(
+      `https://api.pancakeswap.info/api/v2/tokens/${fromAddress},${toAddress}`
+    );
+    
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = await response.json();
+    
+    if (data.data) {
+      const fromData = data.data[fromAddress.toLowerCase()];
+      const toData = data.data[toAddress.toLowerCase()];
+      
+      if (fromData && toData && fromData.price && toData.price) {
+        const fromPrice = parseFloat(fromData.price);
+        const toPrice = parseFloat(toData.price);
+        
+        // 1 BNB = ? PAYU hesapla
+        const exchangeRate = fromPrice / toPrice;
+        
+        return {
+          price: toPrice,
+          amount: exchangeRate
+        };
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error fetching PancakeSwap real prices:', error);
+    return null;
+  }
+}
+
+// Token adreslerini getir
+function getTokenAddress(symbol: string): string | null {
+  const addresses: { [key: string]: string } = {
+    'BNB': '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c',
+    'CAKE': '0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82',
+    'USDT': '0x55d398326f99059fF775485246999027B3197955',
+    'USDC': '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d',
+    'ETH': '0x2170Ed0880ac9A755fd29B2688956BD959F933F8',
+    'BTCB': '0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c',
+    'ADA': '0x3EE2200Efb3400fAbB9AacF31297cBdD1d435D47',
+    'DOT': '0x7083609fCE4d1d8Dc0C979AAb8c869Ea2C873402',
+    'LINK': '0xF8A0BF9cF54Bb92F17374d9e9A321E6a111a51bD',
+    'PAYU': '0x9AeB2E6DD8d55E14292ACFCFC4077e33106e4144'
+  };
+  
+  return addresses[symbol] || null;
+}
