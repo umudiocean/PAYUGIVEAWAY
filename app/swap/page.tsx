@@ -695,7 +695,7 @@ export default function SwapPage() {
     const [isAddingCustomToken, setIsAddingCustomToken] = useState(false)
     const [customTokenAddress, setCustomTokenAddress] = useState('')
     const [customTokenLoading, setCustomTokenLoading] = useState(false)
-    
+
     // Slippage modal states
     const [showSlippageModal, setShowSlippageModal] = useState(false)
     const [customSlippageInput, setCustomSlippageInput] = useState('0.5')
@@ -1008,6 +1008,12 @@ export default function SwapPage() {
             return
         }
 
+        // Amount validation
+        if (parseFloat(fromAmount) <= 0) {
+            alert('Please enter a valid amount')
+            return
+        }
+
         setLoading(true)
         
         try {
@@ -1079,8 +1085,10 @@ export default function SwapPage() {
             
             // Gerçek decimal ile amount hesapla - Web3.js uyumlu
             const amountIn = web3.utils.toWei(fromAmount, 'ether')
-            const amountOutMin = web3.utils.toWei((parseFloat(toAmount) * (1 - slippage / 100)).toString(), 'ether')
-            const deadline = Math.floor(Date.now() / 1000) + 600 // 10 dakika
+            // Slippage tolerance'ı artır - minimum %1
+            const effectiveSlippage = Math.max(slippage, 1.0)
+            const amountOutMin = web3.utils.toWei((parseFloat(toAmount) * (1 - effectiveSlippage / 100)).toString(), 'ether')
+            const deadline = Math.floor(Date.now() / 1000) + 1200 // 20 dakika
 
             let tx
 
@@ -1094,7 +1102,7 @@ export default function SwapPage() {
                 ).send({
                     from: account,
                     value: amountIn,
-                    gas: '300000'
+                    gas: '500000'
                 })
             } else if (toToken.symbol === 'BNB') {
                 // Token -> BNB swap
@@ -1122,7 +1130,7 @@ export default function SwapPage() {
                     deadline
                 ).send({
                     from: account,
-                    gas: '300000'
+                    gas: '500000'
                 })
             } else {
                 // Token -> Token swap
@@ -1150,7 +1158,7 @@ export default function SwapPage() {
                     deadline
                 ).send({
                     from: account,
-                    gas: '300000'
+                    gas: '500000'
                 })
             }
 
@@ -1173,14 +1181,20 @@ export default function SwapPage() {
             
             let errorMessage = 'Swap failed. Please try again.'
             
-            if (error.message.includes('User denied')) {
+            if (error.message.includes('User denied') || error.message.includes('user rejected')) {
                 errorMessage = 'Transaction was cancelled by user.'
-            } else if (error.message.includes('insufficient funds')) {
+            } else if (error.message.includes('insufficient funds') || error.message.includes('insufficient balance')) {
                 errorMessage = 'Insufficient funds for this transaction.'
-            } else if (error.message.includes('slippage')) {
+            } else if (error.message.includes('slippage') || error.message.includes('price moved')) {
                 errorMessage = 'Price moved too much. Try increasing slippage tolerance.'
-            } else if (error.message.includes('gas')) {
-                errorMessage = 'Transaction failed due to gas issues.'
+            } else if (error.message.includes('gas') || error.message.includes('out of gas')) {
+                errorMessage = 'Transaction failed due to gas issues. Try again.'
+            } else if (error.message.includes('Transaction does not have a transaction hash')) {
+                errorMessage = 'Transaction failed to process. Please try again with higher gas limit.'
+            } else if (error.message.includes('network') || error.message.includes('connection')) {
+                errorMessage = 'Network error. Please check your connection and try again.'
+            } else if (error.message.includes('execution reverted')) {
+                errorMessage = 'Transaction reverted. Please check your balance and try again.'
             }
             
             alert(errorMessage)
@@ -1352,15 +1366,15 @@ export default function SwapPage() {
 
                 {/* Conversion Rate */}
                 {fromAmount && toAmount && (
-                    <ConversionRow>
-                        <div style={{ display: 'flex', alignItems: 'center' }}>
-                            <RefreshIcon />
+                <ConversionRow>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <RefreshIcon />
                             1 {fromToken.symbol} ↔ {(parseFloat(toAmount) / parseFloat(fromAmount)).toFixed(6)} {toToken.symbol}
-                        </div>
-                        <div style={{ color: '#6e6e82' }}>
-                            Fee 0.00000998 BNB ▼
-                        </div>
-                    </ConversionRow>
+                    </div>
+                    <div style={{ color: '#6e6e82' }}>
+                        Fee 0.00000998 BNB ▼
+                    </div>
+                </ConversionRow>
                 )}
 
                 {/* MEV Protect */}
@@ -1450,18 +1464,18 @@ export default function SwapPage() {
                                 }}>
                                     {filteredTokens.length} tokens available • 🥞 PancakeSwap
                                 </div>
-                                {filteredTokens.map((token, index) => (
+                        {filteredTokens.map((token, index) => (
                                     <TokenItem key={`${token.address}-${index}`} onClick={() => handleTokenSelect(token)}>
-                                        <TokenLogoImg 
-                                            src={token.logo} 
-                                            alt={token.symbol}
-                                            onError={(e) => {
-                                                e.currentTarget.src = `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/info/logo.png`
-                                            }}
-                                        />
-                                        <TokenInfoModal>
-                                            <TokenSymbolModal>{token.symbol}</TokenSymbolModal>
-                                            <TokenNameModal>{token.name}</TokenNameModal>
+                                <TokenLogoImg 
+                                    src={token.logo} 
+                                    alt={token.symbol}
+                                    onError={(e) => {
+                                        e.currentTarget.src = `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/info/logo.png`
+                                    }}
+                                />
+                                <TokenInfoModal>
+                                    <TokenSymbolModal>{token.symbol}</TokenSymbolModal>
+                                    <TokenNameModal>{token.name}</TokenNameModal>
                                             <TokenPriceModal>
                                                 ${getRealPrice(token.symbol).toFixed(4)} 
                                                 {tokenPrices[token.symbol]?.change24h ? 
@@ -1470,9 +1484,9 @@ export default function SwapPage() {
                                                     🥞
                                                 </span>
                                             </TokenPriceModal>
-                                        </TokenInfoModal>
-                                    </TokenItem>
-                                ))}
+                                </TokenInfoModal>
+                            </TokenItem>
+                        ))}
                             </>
                         )}
                     </TokenList>
