@@ -1077,7 +1077,7 @@ export default function SwapPage() {
                 ).send({
                     from: account,
                     value: amountIn,
-                    gas: 300000
+                    gas: '300000'
                 })
             } else if (toToken.symbol === 'BNB') {
                 // Token -> BNB swap
@@ -1105,7 +1105,7 @@ export default function SwapPage() {
                     deadline
                 ).send({
                     from: account,
-                    gas: 300000
+                    gas: '300000'
                 })
             } else {
                 // Token -> Token swap
@@ -1133,7 +1133,7 @@ export default function SwapPage() {
                     deadline
                 ).send({
                     from: account,
-                    gas: 300000
+                    gas: '300000'
                 })
             }
 
