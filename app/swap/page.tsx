@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { useAccount, useConnect, useBalance } from 'wagmi'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import styled from 'styled-components'
+import { fetchTokenPrices, TokenPrice } from '@/lib/priceApi'
 
 // Type definitions
 interface Token {
@@ -411,6 +412,12 @@ const TokenNameModal = styled.div`
     font-size: 12px;
 `
 
+const TokenPriceModal = styled.div`
+    color: #1FC7D4;
+    font-size: 11px;
+    margin-top: 2px;
+`
+
 const CloseButton = styled.button`
     position: absolute;
     top: 16px;
@@ -431,6 +438,10 @@ export default function SwapPage() {
     const { data: bnbBalance } = useBalance({
         address: account,
     })
+    
+    // Token prices state
+    const [tokenPrices, setTokenPrices] = useState<{ [key: string]: TokenPrice }>({})
+    const [pricesLoading, setPricesLoading] = useState(false)
     const [fromAmount, setFromAmount] = useState('')
     const [toAmount, setToAmount] = useState('')
     const [slippage, setSlippage] = useState(0.5)
@@ -558,6 +569,29 @@ export default function SwapPage() {
         }
     }, [bnbBalance, fromToken.symbol])
 
+    // Fetch token prices on component mount and periodically
+    useEffect(() => {
+        const fetchPrices = async () => {
+            setPricesLoading(true)
+            try {
+                const tokens = ['BNB', 'CAKE', 'USDT', 'USDC', 'ETH', 'BTCB', 'ADA', 'DOT', 'LINK', 'PAYU']
+                const prices = await fetchTokenPrices(tokens)
+                setTokenPrices(prices)
+            } catch (error) {
+                console.error('Failed to fetch token prices:', error)
+            } finally {
+                setPricesLoading(false)
+            }
+        }
+
+        fetchPrices()
+        
+        // Her 15 saniyede bir fiyatları güncelle (PancakeSwap gibi hızlı)
+        const interval = setInterval(fetchPrices, 15000)
+        
+        return () => clearInterval(interval)
+    }, [])
+
     const handleQuickAmount = (percentage: number) => {
         const balance = parseFloat(fromToken.balance || '0')
         const amount = (balance * percentage).toFixed(6)
@@ -587,9 +621,14 @@ export default function SwapPage() {
             // Update balance for BNB
             if (token.symbol === 'BNB' && bnbBalance) {
                 token.balance = parseFloat(bnbBalance.formatted).toFixed(6)
+            } else {
+                // For other tokens, show 0.0 balance (you can add real balance fetching here later)
+                token.balance = '0.0'
             }
             setFromToken(token)
         } else {
+            // For 'to' token, also set balance to 0.0 for now
+            token.balance = '0.0'
             setToToken(token)
         }
         setShowTokenModal(false)
@@ -789,7 +828,10 @@ export default function SwapPage() {
                                     outline: 'none'
                                 }}
                             />
-                            <USDValue>~{(parseFloat(fromAmount || '0') * 600).toFixed(2)} USD</USDValue>
+                            <USDValue>
+                                ~{(parseFloat(fromAmount || '0') * (tokenPrices[fromToken.symbol]?.price || 0)).toFixed(2)} USD
+                                {pricesLoading && <span style={{ color: '#1FC7D4', fontSize: '10px', marginLeft: '4px' }}>🔄</span>}
+                            </USDValue>
                         </AmountInfo>
                     </TokenRow>
                 </TokenBox>
@@ -846,7 +888,10 @@ export default function SwapPage() {
                         </TokenInfo>
                         <AmountInfo>
                             <Amount>{toAmount || '0.00'}</Amount>
-                            <USDValue>~{(parseFloat(toAmount || '0') * 2.1).toFixed(2)} USD</USDValue>
+                            <USDValue>
+                                ~{(parseFloat(toAmount || '0') * (tokenPrices[toToken.symbol]?.price || 0)).toFixed(2)} USD
+                                {pricesLoading && <span style={{ color: '#1FC7D4', fontSize: '10px', marginLeft: '4px' }}>🔄</span>}
+                            </USDValue>
                         </AmountInfo>
                     </TokenRow>
                 </TokenBox>
@@ -954,6 +999,15 @@ export default function SwapPage() {
                                 <TokenInfoModal>
                                     <TokenSymbolModal>{token.symbol}</TokenSymbolModal>
                                     <TokenNameModal>{token.name}</TokenNameModal>
+                                    {tokenPrices[token.symbol] && (
+                                        <TokenPriceModal>
+                                            ${tokenPrices[token.symbol].price.toFixed(4)} 
+                                            {tokenPrices[token.symbol].change24h > 0 ? ' ↗' : ' ↘'}
+                                            <span style={{ color: '#1FC7D4', fontSize: '10px', marginLeft: '4px' }}>
+                                                🥞 PancakeSwap
+                                            </span>
+                                        </TokenPriceModal>
+                                    )}
                                 </TokenInfoModal>
                             </TokenItem>
                         ))}
