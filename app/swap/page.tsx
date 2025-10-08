@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { useAccount, useConnect } from 'wagmi'
+import { useAccount, useConnect, useBalance } from 'wagmi'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import styled from 'styled-components'
 
@@ -426,6 +426,11 @@ const CloseButton = styled.button`
 export default function SwapPage() {
     const { address: account, isConnected, isConnecting } = useAccount()
     const { connect, connectors } = useConnect()
+    
+    // BNB balance
+    const { data: bnbBalance } = useBalance({
+        address: account,
+    })
     const [fromAmount, setFromAmount] = useState('')
     const [toAmount, setToAmount] = useState('')
     const [slippage, setSlippage] = useState(0.5)
@@ -441,7 +446,7 @@ export default function SwapPage() {
         address: '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c',
         decimals: 18,
         logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c/logo.png',
-        balance: '1.2345'
+        balance: '0.0'
     })
 
     const [toToken, setToToken] = useState({
@@ -460,7 +465,7 @@ export default function SwapPage() {
             address: '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c',
             decimals: 18,
             logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c/logo.png',
-            balance: '1.2345'
+            balance: '0.0'
         },
         {
             symbol: 'PAYU',
@@ -543,6 +548,16 @@ export default function SwapPage() {
 
     const allTokens = [...popularTokens, ...customTokens]
 
+    // Update BNB balance when wallet connects
+    useEffect(() => {
+        if (bnbBalance && fromToken.symbol === 'BNB') {
+            setFromToken(prev => ({
+                ...prev,
+                balance: parseFloat(bnbBalance.formatted).toFixed(6)
+            }))
+        }
+    }, [bnbBalance, fromToken.symbol])
+
     const handleQuickAmount = (percentage: number) => {
         const balance = parseFloat(fromToken.balance || '0')
         const amount = (balance * percentage).toFixed(6)
@@ -569,6 +584,10 @@ export default function SwapPage() {
 
     const handleTokenSelect = (token: any) => {
         if (selectingToken === 'from') {
+            // Update balance for BNB
+            if (token.symbol === 'BNB' && bnbBalance) {
+                token.balance = parseFloat(bnbBalance.formatted).toFixed(6)
+            }
             setFromToken(token)
         } else {
             setToToken(token)
@@ -732,7 +751,7 @@ export default function SwapPage() {
                     </QuickButtons>
                 </HeaderRow>
 
-                <TokenBox hasGradient>
+                <TokenBox>
                     <TokenRow>
                         <TokenInfo onClick={() => {
                             setSelectingToken('from')
@@ -770,7 +789,7 @@ export default function SwapPage() {
                                     outline: 'none'
                                 }}
                             />
-                            <USDValue>~{(parseFloat(fromAmount || '0') * 1200).toFixed(2)} USD</USDValue>
+                            <USDValue>~{(parseFloat(fromAmount || '0') * 600).toFixed(2)} USD</USDValue>
                         </AmountInfo>
                     </TokenRow>
                 </TokenBox>
@@ -779,9 +798,14 @@ export default function SwapPage() {
                 <ArrowContainer>
                     <ArrowButton onClick={() => {
                         // Swap tokens logic
-                        const temp = fromToken
-                        // setFromToken(toToken)
-                        // setToToken(temp)
+                        const tempFrom = fromToken
+                        const tempFromAmount = fromAmount
+                        const tempToAmount = toAmount
+                        
+                        setFromToken(toToken)
+                        setToToken(tempFrom)
+                        setFromAmount(tempToAmount)
+                        setToAmount(tempFromAmount)
                     }}>
                         ↓
                     </ArrowButton>
@@ -822,7 +846,7 @@ export default function SwapPage() {
                         </TokenInfo>
                         <AmountInfo>
                             <Amount>{toAmount || '0.00'}</Amount>
-                            <USDValue>~{(parseFloat(toAmount || '0') * 3.5).toFixed(2)} USD</USDValue>
+                            <USDValue>~{(parseFloat(toAmount || '0') * 2.1).toFixed(2)} USD</USDValue>
                         </AmountInfo>
                     </TokenRow>
                 </TokenBox>
