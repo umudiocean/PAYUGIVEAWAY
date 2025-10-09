@@ -653,13 +653,24 @@ export default function SwapPage() {
     const [error, setError] = useState<string>('');
     const [success, setSuccess] = useState<string>('');
 
-    // Fetch token prices
+    // Fetch token prices with silent fail
     const fetchTokenPrices = useCallback(async () => {
         try {
             const ids = Object.values(COINGECKO_IDS).filter(id => id !== '').join(',');
             const response = await fetch(
-                `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`
+                `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`,
+                { 
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' }
+                }
             );
+            
+            // If API fails, just continue without prices
+            if (!response.ok) {
+                console.warn('CoinGecko API unavailable, prices will not update');
+                return;
+            }
+            
             const data = await response.json();
 
             setTokenList(prev => prev.map(token => {
@@ -670,7 +681,8 @@ export default function SwapPage() {
                 return token;
             }));
         } catch (error) {
-            console.error('Error fetching prices:', error);
+            // Silent fail - prices are nice to have but not critical
+            console.warn('Price fetch failed:', error);
         }
     }, []);
 
@@ -838,6 +850,33 @@ export default function SwapPage() {
         }
     };
 
+    // Transaction receipt waiting function
+    const waitForTransaction = async (txHash: string, timeout: number = 60000): Promise<void> => {
+        if (!web3) return;
+        
+        const startTime = Date.now();
+        
+        while (Date.now() - startTime < timeout) {
+            try {
+                const receipt = await web3.eth.getTransactionReceipt(txHash);
+                if (receipt) {
+                    if (receipt.status) {
+                        return; // Transaction successful
+                    } else {
+                        throw new Error('Transaction failed');
+                    }
+                }
+            } catch (error) {
+                // Continue waiting
+            }
+            
+            // Wait 2 seconds before checking again
+            await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+        
+        throw new Error('Transaction timeout - please check BSCScan');
+    };
+
     const approveToken = async (tokenAddress: string, amount: string): Promise<boolean> => {
         if (!web3 || !account || typeof window.ethereum === 'undefined') return false;
 
@@ -862,7 +901,7 @@ export default function SwapPage() {
             const approveData = tokenContract.methods.approve(PANCAKE_ROUTER, unlimitedAmount);
             
             // Use MetaMask request for better compatibility
-            await window.ethereum.request({
+            const txHash = await window.ethereum.request({
                 method: 'eth_sendTransaction',
                 params: [{
                     from: account,
@@ -871,9 +910,17 @@ export default function SwapPage() {
                 }],
             });
             
+            // Wait for approval transaction
+            if (txHash && typeof txHash === 'string') {
+                await waitForTransaction(txHash, 90000); // 90 second timeout for approval
+            }
+            
             setSuccess('Token approved! Now swapping...');
             return true;
         } catch (error: any) {
+            if (error.code === 4001 || error.message.includes('User denied') || error.message.includes('User rejected')) {
+                throw new Error('User rejected the approval');
+            }
             throw new Error('Token approval failed: ' + error.message);
         }
     };
@@ -884,8 +931,8 @@ export default function SwapPage() {
         try {
             const feeInWei = web3.utils.toWei(PLATFORM_FEE, 'ether');
             
-            // Use MetaMask's request method directly for better compatibility
-            await window.ethereum.request({
+            // Send transaction and get hash
+            const txHash = await window.ethereum.request({
                 method: 'eth_sendTransaction',
                 params: [{
                     from: account,
@@ -894,8 +941,17 @@ export default function SwapPage() {
                 }],
             });
             
+            // Wait for transaction to be mined (with timeout)
+            if (txHash && typeof txHash === 'string') {
+                await waitForTransaction(txHash, 60000); // 60 second timeout
+            }
+            
             return true;
         } catch (error: any) {
+            // If user rejected, throw immediately
+            if (error.code === 4001 || error.message.includes('User denied')) {
+                throw new Error('User rejected the transaction');
+            }
             throw new Error('Platform fee transfer failed: ' + error.message);
         }
     };
@@ -957,7 +1013,7 @@ export default function SwapPage() {
                     throw new Error('MetaMask is not installed');
                 }
 
-                await window.ethereum.request({
+                const swapTxHash = await window.ethereum.request({
                     method: 'eth_sendTransaction',
                     params: [{
                         from: account,
@@ -966,6 +1022,12 @@ export default function SwapPage() {
                         data: swapData.encodeABI(),
                     }],
                 });
+                
+                // Wait for swap transaction
+                if (swapTxHash && typeof swapTxHash === 'string') {
+                    setSuccess('Waiting for transaction confirmation...');
+                    await waitForTransaction(swapTxHash, 120000); // 2 minute timeout for swap
+                }
                 
             } else if (toToken.symbol === 'BNB') {
                 // Token → BNB
@@ -990,7 +1052,7 @@ export default function SwapPage() {
                     throw new Error('MetaMask is not installed');
                 }
 
-                await window.ethereum.request({
+                const swapTxHash = await window.ethereum.request({
                     method: 'eth_sendTransaction',
                     params: [{
                         from: account,
@@ -998,6 +1060,12 @@ export default function SwapPage() {
                         data: swapData.encodeABI(),
                     }],
                 });
+                
+                // Wait for swap transaction
+                if (swapTxHash && typeof swapTxHash === 'string') {
+                    setSuccess('Waiting for transaction confirmation...');
+                    await waitForTransaction(swapTxHash, 120000); // 2 minute timeout for swap
+                }
                 
             } else {
                 // Token → Token
@@ -1022,7 +1090,7 @@ export default function SwapPage() {
                     throw new Error('MetaMask is not installed');
                 }
 
-                await window.ethereum.request({
+                const swapTxHash = await window.ethereum.request({
                     method: 'eth_sendTransaction',
                     params: [{
                         from: account,
@@ -1030,6 +1098,12 @@ export default function SwapPage() {
                         data: swapData.encodeABI(),
                     }],
                 });
+                
+                // Wait for swap transaction
+                if (swapTxHash && typeof swapTxHash === 'string') {
+                    setSuccess('Waiting for transaction confirmation...');
+                    await waitForTransaction(swapTxHash, 120000); // 2 minute timeout for swap
+                }
             }
 
             setSuccess('Swap successful! 🎉 Platform fee sent to PayPayu.');
@@ -1047,12 +1121,18 @@ export default function SwapPage() {
             // Better error messages
             let errorMessage = 'Swap failed';
             
-            if (error.message.includes('User denied')) {
+            if (error.message.includes('User denied') || error.message.includes('User rejected')) {
                 errorMessage = 'Transaction rejected by user';
+            } else if (error.message.includes('timeout')) {
+                errorMessage = 'Transaction timeout - check BSCScan for status';
             } else if (error.message.includes('insufficient funds')) {
                 errorMessage = 'Insufficient funds for transaction';
             } else if (error.message.includes('Platform fee')) {
                 errorMessage = error.message;
+            } else if (error.message.includes('Token approval')) {
+                errorMessage = error.message;
+            } else if (error.message.includes('Transaction failed')) {
+                errorMessage = 'Transaction reverted - check slippage or liquidity';
             } else if (error.message) {
                 errorMessage = 'Swap failed: ' + error.message.substring(0, 100);
             }
