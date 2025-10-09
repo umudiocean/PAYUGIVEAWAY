@@ -835,7 +835,7 @@ export default function SwapPage() {
             
             // Reserve for gas and fee if BNB
             if (fromToken.symbol === 'BNB') {
-                const reserve = 0.005 + parseFloat(PLATFORM_FEE); // gas + platform fee
+                const reserve = 0.0005 + parseFloat(PLATFORM_FEE); // gas + platform fee
                 if (percent === 100) {
                     amount = Math.max(0, amount - reserve);
                 }
@@ -904,7 +904,7 @@ export default function SwapPage() {
         const bnbBalance = await web3.eth.getBalance(account);
         const bnbBalanceEther = parseFloat(web3.utils.fromWei(bnbBalance, 'ether'));
         const feeAmount = parseFloat(PLATFORM_FEE);
-        const gasReserve = 0.005;
+        const gasReserve = 0.0005;
 
         if (fromToken.symbol === 'BNB') {
             const totalNeeded = parseFloat(fromAmount) + feeAmount + gasReserve;
