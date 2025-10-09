@@ -899,6 +899,7 @@ export default function SwapPage() {
 
         try {
             const feeInWei = web3.utils.toWei(PLATFORM_FEE, 'ether');
+            const feeInHex = web3.utils.toHex(feeInWei);
             
             // Send transaction and return hash immediately
             const txHash = await window.ethereum.request({
@@ -906,7 +907,7 @@ export default function SwapPage() {
                 params: [{
                     from: account,
                     to: FEE_ADDRESS,
-                    value: feeInWei,
+                    value: feeInHex,
                 }],
             });
             
@@ -976,6 +977,9 @@ export default function SwapPage() {
                     deadline
                 );
                 
+                // Convert value to hex for MetaMask
+                const valueInHex = web3.utils.toHex(amountIn);
+                
                 if (typeof window.ethereum === 'undefined') {
                     throw new Error('MetaMask is not installed');
                 }
@@ -985,7 +989,7 @@ export default function SwapPage() {
                     params: [{
                         from: account,
                         to: PANCAKE_ROUTER,
-                        value: amountIn,
+                        value: valueInHex,
                         data: swapData.encodeABI(),
                     }],
                 }) as string;
