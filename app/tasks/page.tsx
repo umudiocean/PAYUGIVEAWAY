@@ -21,7 +21,7 @@ const TASKS = [
   { 
     id: 'x', 
     name: 'Retweet and Follow on X', 
-    url: 'https://x.com/payu_coin/status/1974549463634178327', 
+    url: 'https://x.com/payu_coin/status/1976227589498012031', 
     shape: 'triangle',
     symbol: '△',
     color: '#FFFFFF',
