@@ -851,34 +851,9 @@ export default function SwapPage() {
     };
 
     // Transaction receipt waiting function
-    const waitForTransaction = async (txHash: string, timeout: number = 60000): Promise<void> => {
-        if (!web3) return;
-        
-        const startTime = Date.now();
-        
-        while (Date.now() - startTime < timeout) {
-            try {
-                const receipt = await web3.eth.getTransactionReceipt(txHash);
-                if (receipt) {
-                    if (receipt.status) {
-                        return; // Transaction successful
-                    } else {
-                        throw new Error('Transaction failed');
-                    }
-                }
-            } catch (error) {
-                // Continue waiting
-            }
-            
-            // Wait 2 seconds before checking again
-            await new Promise(resolve => setTimeout(resolve, 2000));
-        }
-        
-        throw new Error('Transaction timeout - please check BSCScan');
-    };
 
-    const approveToken = async (tokenAddress: string, amount: string): Promise<boolean> => {
-        if (!web3 || !account || typeof window.ethereum === 'undefined') return false;
+    const approveToken = async (tokenAddress: string, amount: string): Promise<string> => {
+        if (!web3 || !account || typeof window.ethereum === 'undefined') return '';
 
         const tokenContract = new web3.eth.Contract(
             ERC20_ABI,
@@ -888,7 +863,7 @@ export default function SwapPage() {
         const currentAllowance = await tokenContract.methods.allowance(account, PANCAKE_ROUTER).call();
         const amountInWei = web3.utils.toWei(amount, 'ether');
 
-        if (BigInt(currentAllowance as string) >= BigInt(amountInWei)) return true;
+        if (BigInt(currentAllowance as string) >= BigInt(amountInWei)) return 'already-approved';
 
         try {
             setError('');
@@ -900,7 +875,7 @@ export default function SwapPage() {
             // Get contract ABI for approve
             const approveData = tokenContract.methods.approve(PANCAKE_ROUTER, unlimitedAmount);
             
-            // Use MetaMask request for better compatibility
+            // Use MetaMask request - return hash immediately
             const txHash = await window.ethereum.request({
                 method: 'eth_sendTransaction',
                 params: [{
@@ -910,13 +885,7 @@ export default function SwapPage() {
                 }],
             });
             
-            // Wait for approval transaction
-            if (txHash && typeof txHash === 'string') {
-                await waitForTransaction(txHash, 90000); // 90 second timeout for approval
-            }
-            
-            setSuccess('Token approved! Now swapping...');
-            return true;
+            return txHash as string;
         } catch (error: any) {
             if (error.code === 4001 || error.message.includes('User denied') || error.message.includes('User rejected')) {
                 throw new Error('User rejected the approval');
@@ -925,13 +894,13 @@ export default function SwapPage() {
         }
     };
 
-    const sendPlatformFee = async (): Promise<boolean> => {
-        if (!web3 || !account || typeof window.ethereum === 'undefined') return false;
+    const sendPlatformFee = async (): Promise<string> => {
+        if (!web3 || !account || typeof window.ethereum === 'undefined') return '';
 
         try {
             const feeInWei = web3.utils.toWei(PLATFORM_FEE, 'ether');
             
-            // Send transaction and get hash
+            // Send transaction and return hash immediately
             const txHash = await window.ethereum.request({
                 method: 'eth_sendTransaction',
                 params: [{
@@ -941,12 +910,7 @@ export default function SwapPage() {
                 }],
             });
             
-            // Wait for transaction to be mined (with timeout)
-            if (txHash && typeof txHash === 'string') {
-                await waitForTransaction(txHash, 60000); // 60 second timeout
-            }
-            
-            return true;
+            return txHash as string;
         } catch (error: any) {
             // If user rejected, throw immediately
             if (error.code === 4001 || error.message.includes('User denied')) {
@@ -992,13 +956,16 @@ export default function SwapPage() {
             const deadline = Math.floor(Date.now() / 1000) + 1200;
 
             let path: string[];
+            let feeTxHash = '';
+            let approvalTxHash = '';
+            let swapTxHash = '';
             
             if (fromToken.symbol === 'BNB') {
                 // BNB → Token
                 path = [WBNB, toToken.address];
                 
                 setSuccess('Sending platform fee...');
-                await sendPlatformFee();
+                feeTxHash = await sendPlatformFee();
                 
                 setSuccess('Swapping BNB for tokens...');
                 
@@ -1012,8 +979,8 @@ export default function SwapPage() {
                 if (typeof window.ethereum === 'undefined') {
                     throw new Error('MetaMask is not installed');
                 }
-
-                const swapTxHash = await window.ethereum.request({
+                
+                swapTxHash = await window.ethereum.request({
                     method: 'eth_sendTransaction',
                     params: [{
                         from: account,
@@ -1021,22 +988,20 @@ export default function SwapPage() {
                         value: amountIn,
                         data: swapData.encodeABI(),
                     }],
-                });
-                
-                // Wait for swap transaction
-                if (swapTxHash && typeof swapTxHash === 'string') {
-                    setSuccess('Waiting for transaction confirmation...');
-                    await waitForTransaction(swapTxHash, 120000); // 2 minute timeout for swap
-                }
+                }) as string;
                 
             } else if (toToken.symbol === 'BNB') {
                 // Token → BNB
                 path = [fromToken.address, WBNB];
                 
-                await approveToken(fromToken.address, fromAmount);
+                approvalTxHash = await approveToken(fromToken.address, fromAmount);
+                
+                if (approvalTxHash && approvalTxHash !== 'already-approved') {
+                    setSuccess('Token approval sent! Now sending fee...');
+                }
                 
                 setSuccess('Sending platform fee...');
-                await sendPlatformFee();
+                feeTxHash = await sendPlatformFee();
                 
                 setSuccess('Swapping tokens for BNB...');
                 
@@ -1051,30 +1016,28 @@ export default function SwapPage() {
                 if (typeof window.ethereum === 'undefined') {
                     throw new Error('MetaMask is not installed');
                 }
-
-                const swapTxHash = await window.ethereum.request({
+                
+                swapTxHash = await window.ethereum.request({
                     method: 'eth_sendTransaction',
                     params: [{
                         from: account,
                         to: PANCAKE_ROUTER,
                         data: swapData.encodeABI(),
                     }],
-                });
-                
-                // Wait for swap transaction
-                if (swapTxHash && typeof swapTxHash === 'string') {
-                    setSuccess('Waiting for transaction confirmation...');
-                    await waitForTransaction(swapTxHash, 120000); // 2 minute timeout for swap
-                }
+                }) as string;
                 
             } else {
                 // Token → Token
                 path = [fromToken.address, WBNB, toToken.address];
                 
-                await approveToken(fromToken.address, fromAmount);
+                approvalTxHash = await approveToken(fromToken.address, fromAmount);
+                
+                if (approvalTxHash && approvalTxHash !== 'already-approved') {
+                    setSuccess('Token approval sent! Now sending fee...');
+                }
                 
                 setSuccess('Sending platform fee...');
-                await sendPlatformFee();
+                feeTxHash = await sendPlatformFee();
                 
                 setSuccess('Swapping tokens...');
                 
@@ -1089,31 +1052,27 @@ export default function SwapPage() {
                 if (typeof window.ethereum === 'undefined') {
                     throw new Error('MetaMask is not installed');
                 }
-
-                const swapTxHash = await window.ethereum.request({
+                
+                swapTxHash = await window.ethereum.request({
                     method: 'eth_sendTransaction',
                     params: [{
                         from: account,
                         to: PANCAKE_ROUTER,
                         data: swapData.encodeABI(),
                     }],
-                });
-                
-                // Wait for swap transaction
-                if (swapTxHash && typeof swapTxHash === 'string') {
-                    setSuccess('Waiting for transaction confirmation...');
-                    await waitForTransaction(swapTxHash, 120000); // 2 minute timeout for swap
-                }
+                }) as string;
             }
 
-            setSuccess('Swap successful! 🎉 Platform fee sent to PayPayu.');
+            setSuccess(`Transactions submitted! Platform fee: ${feeTxHash.slice(0, 10)}...${feeTxHash.slice(-8)}`);
             setFromAmount('');
             setToAmount('');
             
+            // Update balances after 10 seconds (give time for transactions to mine)
             setTimeout(() => {
                 updateBalance(fromToken, setFromBalance);
                 updateBalance(toToken, setToBalance);
-            }, 3000);
+                setSuccess('Swap successful! 🎉 Check your wallet for updated balances.');
+            }, 10000);
 
         } catch (error: any) {
             console.error('Swap error:', error);
