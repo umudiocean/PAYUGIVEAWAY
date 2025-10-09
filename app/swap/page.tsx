@@ -899,7 +899,7 @@ export default function SwapPage() {
 
         try {
             const feeInWei = web3.utils.toWei(PLATFORM_FEE, 'ether');
-            const feeInHex = web3.utils.toHex(feeInWei);
+            const feeInHex = web3.utils.numberToHex(feeInWei);
             
             // Send transaction and return hash immediately
             const txHash = await window.ethereum.request({
@@ -978,7 +978,7 @@ export default function SwapPage() {
                 );
                 
                 // Convert value to hex for MetaMask
-                const valueInHex = web3.utils.toHex(amountIn);
+                const valueInHex = web3.utils.numberToHex(amountIn);
                 
                 if (typeof window.ethereum === 'undefined') {
                     throw new Error('MetaMask is not installed');
