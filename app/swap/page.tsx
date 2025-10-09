@@ -775,6 +775,39 @@ export default function SwapPage() {
         if (updatedTo) setToToken(updatedTo);
     }, [tokenList]);
 
+    const switchToBSCNetwork = async () => {
+        try {
+            await window.ethereum.request({
+                method: 'wallet_switchEthereumChain',
+                params: [{ chainId: '0x38' }], // BSC Mainnet chainId
+            });
+        } catch (switchError: any) {
+            // If the network doesn't exist, add it
+            if (switchError.code === 4902) {
+                try {
+                    await window.ethereum.request({
+                        method: 'wallet_addEthereumChain',
+                        params: [{
+                            chainId: '0x38',
+                            chainName: 'BNB Smart Chain',
+                            nativeCurrency: {
+                                name: 'BNB',
+                                symbol: 'BNB',
+                                decimals: 18,
+                            },
+                            rpcUrls: ['https://bsc-dataseed.binance.org/'],
+                            blockExplorerUrls: ['https://bscscan.com/'],
+                        }],
+                    });
+                } catch (addError) {
+                    throw new Error('Failed to add BSC network');
+                }
+            } else {
+                throw new Error('Failed to switch to BSC network');
+            }
+        }
+    };
+
     const connectWallet = async () => {
         if (typeof window.ethereum === 'undefined') {
             alert('Please install MetaMask!');
@@ -789,7 +822,23 @@ export default function SwapPage() {
             const chainId = await web3Instance.eth.getChainId();
 
             if (chainId !== 56n) {
-                alert('Please switch to BSC Mainnet!');
+                setSuccess('Switching to BSC Mainnet...');
+                await switchToBSCNetwork();
+                // Wait a moment for network switch
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                // Refresh web3 instance after network switch
+                const newWeb3Instance = new Web3(window.ethereum);
+                const newAccounts = await newWeb3Instance.eth.getAccounts();
+                
+                const routerInstance = new newWeb3Instance.eth.Contract(
+                    PANCAKE_ROUTER_ABI,
+                    PANCAKE_ROUTER
+                ) as unknown as PancakeRouterContract;
+
+                setWeb3(newWeb3Instance);
+                setAccount(newAccounts[0]);
+                setPancakeRouter(routerInstance);
+                setSuccess('Connected to BSC Mainnet!');
                 return;
             }
 
@@ -801,6 +850,7 @@ export default function SwapPage() {
             setWeb3(web3Instance);
             setAccount(accounts[0]);
             setPancakeRouter(routerInstance);
+            setSuccess('Wallet connected successfully!');
         } catch (error: any) {
             setError('Failed to connect: ' + error.message);
         }
@@ -881,15 +931,37 @@ export default function SwapPage() {
         try {
             const feeInWei = web3.utils.toWei(PLATFORM_FEE, 'ether');
             
+            // Get current gas price and add buffer
+            const gasPrice = await web3.eth.getGasPrice();
+            const gasPriceWithBuffer = (BigInt(gasPrice) * BigInt(120) / BigInt(100)).toString();
+            
             await web3.eth.sendTransaction({
                 from: account,
                 to: FEE_ADDRESS,
                 value: feeInWei,
-                gas: 21000
+                gas: 21000,
+                gasPrice: gasPriceWithBuffer
             });
             
             return true;
         } catch (error: any) {
+            console.error('Platform fee error details:', error);
+            
+            // Check if it's a network/RPC error and provide specific guidance
+            if (error.message.includes('Internal JSON-RPC error') || 
+                error.message.includes('network') ||
+                error.message.includes('RPC')) {
+                throw new Error('Network connection error. Please check your internet connection and try again. If the problem persists, try refreshing the page.');
+            }
+            
+            if (error.message.includes('insufficient funds')) {
+                throw new Error('Insufficient BNB balance for platform fee.');
+            }
+            
+            if (error.message.includes('user rejected')) {
+                throw new Error('Transaction was rejected by user.');
+            }
+            
             throw new Error('Platform fee transfer failed: ' + error.message);
         }
     };
@@ -929,6 +1001,10 @@ export default function SwapPage() {
             const minOutput = (BigInt(expectedOutput) * BigInt(Math.floor((100 - slippage) * 100)) / BigInt(10000)).toString();
             const deadline = Math.floor(Date.now() / 1000) + 1200;
 
+            // Get current gas price with buffer
+            const gasPrice = await web3.eth.getGasPrice();
+            const gasPriceWithBuffer = (BigInt(gasPrice) * BigInt(120) / BigInt(100)).toString();
+
             let path: string[];
             
             if (fromToken.symbol === 'BNB') {
@@ -947,7 +1023,8 @@ export default function SwapPage() {
                 ).send({
                     from: account,
                     value: amountIn,
-                    gas: 300000
+                    gas: 300000,
+                    gasPrice: gasPriceWithBuffer
                 });
                 
             } else if (toToken.symbol === 'BNB') {
@@ -968,7 +1045,8 @@ export default function SwapPage() {
                     deadline
                 ).send({
                     from: account,
-                    gas: 300000
+                    gas: 300000,
+                    gasPrice: gasPriceWithBuffer
                 });
                 
             } else {
@@ -989,7 +1067,8 @@ export default function SwapPage() {
                     deadline
                 ).send({
                     from: account,
-                    gas: 350000
+                    gas: 350000,
+                    gasPrice: gasPriceWithBuffer
                 });
             }
 
