@@ -14,7 +14,7 @@ export function CountdownTimer() {
   // Gerçek çekiliş tarihi: Sabit tarih olarak ayarla
   const [targetDate] = useState(() => {
     const date = new Date()
-    date.setDate(date.getDate() + 33) // 33 gün ekle
+    date.setDate(date.getDate() + 31) // 31 gün ekle
     date.setHours(23, 59, 59, 0) // 23:59:59
     return date
   })
@@ -203,7 +203,7 @@ export function CountdownTimer() {
             className="h-full bg-gradient-to-r from-pink-500 to-purple-500 rounded-full"
             initial={{ width: '100%' }}
             animate={{ 
-              width: `${((timeLeft.days * 24 * 60 * 60 + timeLeft.hours * 60 * 60 + timeLeft.minutes * 60 + timeLeft.seconds) / (33 * 24 * 60 * 60 + 23 * 60 * 60 + 59 * 60 + 59)) * 100}%`
+              width: `${((timeLeft.days * 24 * 60 * 60 + timeLeft.hours * 60 * 60 + timeLeft.minutes * 60 + timeLeft.seconds) / (31 * 24 * 60 * 60 + 23 * 60 * 60 + 59 * 60 + 59)) * 100}%`
             }}
             transition={{ duration: 1, ease: "easeOut" }}
             style={{ boxShadow: '0 0 5px currentColor' }}
