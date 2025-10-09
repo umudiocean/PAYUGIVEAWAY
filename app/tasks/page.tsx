@@ -30,7 +30,7 @@ const TASKS = [
   { 
     id: 'instagram', 
     name: 'Add to Story on Instagram', 
-    url: 'https://www.instagram.com/reel/DPZgFLFEWCg/?igsh=MTAwZHlsZzVoejIzZg==', 
+    url: 'https://www.instagram.com/reel/DPlbKA2kRSs/?igsh=MTA3dzl0YThwYnRhcg==', 
     shape: 'square',
     symbol: '⬜',
     color: '#FFD700',
