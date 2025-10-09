@@ -11,10 +11,13 @@ interface TimeLeft {
 }
 
 export function CountdownTimer() {
-  // Gerçek çekiliş tarihi: 1 saat önce başlamış olarak ayarla (33 gün 23 saat 59 dakika 59 saniye)
-  const targetDate = new Date()
-  targetDate.setDate(targetDate.getDate() + 33) // 33 gün ekle
-  targetDate.setHours(23, 59, 59, 0) // 23:59:59
+  // Gerçek çekiliş tarihi: Sabit tarih olarak ayarla
+  const [targetDate] = useState(() => {
+    const date = new Date()
+    date.setDate(date.getDate() + 33) // 33 gün ekle
+    date.setHours(23, 59, 59, 0) // 23:59:59
+    return date
+  })
 
   const [timeLeft, setTimeLeft] = useState<TimeLeft>({
     days: 0,
