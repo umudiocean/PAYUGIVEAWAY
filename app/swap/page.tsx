@@ -776,6 +776,10 @@ export default function SwapPage() {
     }, [tokenList]);
 
     const switchToBSCNetwork = async () => {
+        if (typeof window === 'undefined' || !window.ethereum) {
+            throw new Error('MetaMask is not installed');
+        }
+
         try {
             await window.ethereum.request({
                 method: 'wallet_switchEthereumChain',
