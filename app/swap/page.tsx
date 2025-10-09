@@ -788,7 +788,7 @@ export default function SwapPage() {
             const accounts = await web3Instance.eth.getAccounts();
             const chainId = await web3Instance.eth.getChainId();
 
-            if (chainId !== 56n && chainId !== 56) {
+            if (chainId !== 56n) {
                 alert('Please switch to BSC Mainnet!');
                 return;
             }
