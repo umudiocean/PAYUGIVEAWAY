@@ -1,12 +1,10 @@
-'use client'
+'use client';
 
-import React, { useState, useEffect } from 'react'
-import { useAccount, useConnect, useBalance, useReadContract } from 'wagmi'
-import { ConnectButton } from '@rainbow-me/rainbowkit'
-import styled from 'styled-components'
-import { fetchTokenPrices, TokenPrice, fetchAllTokensWithPrices, PancakeSwapToken, fetchPancakeSwapRealPrices } from '@/lib/priceApi'
+import React, { useState, useEffect, useCallback } from 'react';
+import Web3 from 'web3';
+import styled from 'styled-components';
 
-// Type definitions
+// ==================== TYPE DEFINITIONS ====================
 interface Token {
     symbol: string;
     name: string;
@@ -14,11 +12,12 @@ interface Token {
     decimals: number;
     logo: string;
     balance?: string;
+    priceUSD?: number;
 }
 
 interface ContractMethod {
     call: () => Promise<any>;
-    send: (options: { from: string; value?: string; gas?: number }) => Promise<any>;
+    send: (options: { from: string; value?: string; gas?: number; gasPrice?: string }) => Promise<any>;
 }
 
 interface ERC20Contract {
@@ -26,1539 +25,1173 @@ interface ERC20Contract {
         balanceOf: (address: string) => ContractMethod;
         allowance: (owner: string, spender: string) => ContractMethod;
         approve: (spender: string, amount: string) => ContractMethod;
+        symbol: () => ContractMethod;
+        name: () => ContractMethod;
+        decimals: () => ContractMethod;
     };
 }
 
-interface SwapContract {
+interface PancakeRouterContract {
     methods: {
         getAmountsOut: (amountIn: string, path: string[]) => ContractMethod;
-        swapExactBNBForTokens: (tokenOut: string, amountOutMin: string, deadline: number) => ContractMethod;
-        swapExactTokensForBNB: (tokenIn: string, amountIn: string, amountOutMin: string, deadline: number) => ContractMethod;
-        swapExactTokensForTokens: (tokenIn: string, tokenOut: string, amountIn: string, amountOutMin: string, deadline: number) => ContractMethod;
+        swapExactETHForTokens: (amountOutMin: string, path: string[], to: string, deadline: number) => ContractMethod;
+        swapExactTokensForETH: (amountIn: string, amountOutMin: string, path: string[], to: string, deadline: number) => ContractMethod;
+        swapExactTokensForTokens: (amountIn: string, amountOutMin: string, path: string[], to: string, deadline: number) => ContractMethod;
     };
 }
 
-// Styled Components
-const SwapContainer = styled.div`
+// ==================== CONTRACT SETUP ====================
+const PANCAKE_ROUTER = "0x10ED43C718714eb63d5aA57B78B54704E256024E"; // PancakeSwap V2 Router
+const WBNB = "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c";
+const PLATFORM_FEE = "0.00025"; // 0.00025 BNB per swap
+const FEE_ADDRESS = "0xd9C4b8436d2a235A1f7DB09E680b5928cFdA641a"; // Platform fee address
+
+// PancakeSwap Router V2 ABI
+const PANCAKE_ROUTER_ABI = [
+    {
+        "inputs": [
+            {"internalType": "uint256", "name": "amountIn", "type": "uint256"},
+            {"internalType": "address[]", "name": "path", "type": "address[]"}
+        ],
+        "name": "getAmountsOut",
+        "outputs": [{"internalType": "uint256[]", "name": "amounts", "type": "uint256[]"}],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {"internalType": "uint256", "name": "amountOutMin", "type": "uint256"},
+            {"internalType": "address[]", "name": "path", "type": "address[]"},
+            {"internalType": "address", "name": "to", "type": "address"},
+            {"internalType": "uint256", "name": "deadline", "type": "uint256"}
+        ],
+        "name": "swapExactETHForTokens",
+        "outputs": [{"internalType": "uint256[]", "name": "amounts", "type": "uint256[]"}],
+        "stateMutability": "payable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {"internalType": "uint256", "name": "amountIn", "type": "uint256"},
+            {"internalType": "uint256", "name": "amountOutMin", "type": "uint256"},
+            {"internalType": "address[]", "name": "path", "type": "address[]"},
+            {"internalType": "address", "name": "to", "type": "address"},
+            {"internalType": "uint256", "name": "deadline", "type": "uint256"}
+        ],
+        "name": "swapExactTokensForETH",
+        "outputs": [{"internalType": "uint256[]", "name": "amounts", "type": "uint256[]"}],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {"internalType": "uint256", "name": "amountIn", "type": "uint256"},
+            {"internalType": "uint256", "name": "amountOutMin", "type": "uint256"},
+            {"internalType": "address[]", "name": "path", "type": "address[]"},
+            {"internalType": "address", "name": "to", "type": "address"},
+            {"internalType": "uint256", "name": "deadline", "type": "uint256"}
+        ],
+        "name": "swapExactTokensForTokens",
+        "outputs": [{"internalType": "uint256[]", "name": "amounts", "type": "uint256[]"}],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    }
+];
+
+const ERC20_ABI = [
+    {"inputs":[{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"approve","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"},
+    {"inputs":[{"internalType":"address","name":"owner","type":"address"},{"internalType":"address","name":"spender","type":"address"}],"name":"allowance","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+    {"inputs":[{"internalType":"address","name":"account","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+    {"inputs":[],"name":"symbol","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},
+    {"inputs":[],"name":"name","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},
+    {"inputs":[],"name":"decimals","outputs":[{"internalType":"uint8","name":"","type":"uint8"}],"stateMutability":"view","type":"function"}
+];
+
+const INITIAL_TOKEN_LIST: Token[] = [
+    { 
+        symbol: "BNB", 
+        name: "BNB", 
+        address: WBNB, 
+        decimals: 18, 
+        logo: "https://tokens.pancakeswap.finance/images/symbol/bnb.png",
+        priceUSD: 0
+    },
+    { 
+        symbol: "CAKE", 
+        name: "PancakeSwap Token", 
+        address: "0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82", 
+        decimals: 18, 
+        logo: "https://tokens.pancakeswap.finance/images/0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82.png",
+        priceUSD: 0
+    },
+    { 
+        symbol: "PAYU", 
+        name: "PAYU Token", 
+        address: "0x9AeB2E6DD8d55E14292ACFCFC4077e33106e4144", 
+        decimals: 18, 
+        logo: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0x9AeB2E6DD8d55E14292ACFCFC4077e33106e4144/logo.png",
+        priceUSD: 0
+    },
+    { 
+        symbol: "USDT", 
+        name: "Tether USD", 
+        address: "0x55d398326f99059fF775485246999027B3197955", 
+        decimals: 18, 
+        logo: "https://tokens.pancakeswap.finance/images/0x55d398326f99059fF775485246999027B3197955.png",
+        priceUSD: 1
+    },
+    { 
+        symbol: "BUSD", 
+        name: "Binance USD", 
+        address: "0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56", 
+        decimals: 18, 
+        logo: "https://tokens.pancakeswap.finance/images/0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56.png",
+        priceUSD: 1
+    },
+    { 
+        symbol: "USDC", 
+        name: "USD Coin", 
+        address: "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d", 
+        decimals: 18, 
+        logo: "https://tokens.pancakeswap.finance/images/0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d.png",
+        priceUSD: 1
+    },
+    { 
+        symbol: "ETH", 
+        name: "Ethereum Token", 
+        address: "0x2170Ed0880ac9A755fd29B2688956BD959F933F8", 
+        decimals: 18, 
+        logo: "https://tokens.pancakeswap.finance/images/0x2170Ed0880ac9A755fd29B2688956BD959F933F8.png",
+        priceUSD: 0
+    },
+    { 
+        symbol: "BTCB", 
+        name: "Bitcoin BEP2", 
+        address: "0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c", 
+        decimals: 18, 
+        logo: "https://tokens.pancakeswap.finance/images/0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c.png",
+        priceUSD: 0
+    }
+];
+
+const COINGECKO_IDS: { [key: string]: string } = {
+    'BNB': 'binancecoin',
+    'CAKE': 'pancakeswap-token',
+    'PAYU': 'payu',
+    'USDT': 'tether',
+    'BUSD': 'binance-usd',
+    'USDC': 'usd-coin',
+    'ETH': 'ethereum',
+    'BTCB': 'bitcoin'
+};
+
+// ==================== STYLED COMPONENTS ====================
+const Container = styled.div`
     min-height: 100vh;
-    background: linear-gradient(139.73deg, #08061e 0%, #0f0c23 100%);
+    background: linear-gradient(139.73deg, rgb(8, 6, 22) 0%, rgb(15, 12, 35) 100%);
     display: flex;
-    align-items: center;
     justify-content: center;
+    align-items: center;
     padding: 20px;
-    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-`
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+`;
 
 const SwapCard = styled.div`
     background: #27262c;
     border-radius: 32px;
-    box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.3);
-    padding: 24px;
-    max-width: 440px;
     width: 100%;
-`
+    max-width: 440px;
+    padding: 24px;
+    box-shadow: 0px 0px 1px rgba(0, 0, 0, 0.01), 0px 4px 8px rgba(0, 0, 0, 0.04), 0px 16px 24px rgba(0, 0, 0, 0.04), 0px 24px 32px rgba(0, 0, 0, 0.01);
+`;
 
-const HeaderRow = styled.div`
+const SwapHeader = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
-`
+    margin-bottom: 24px;
+`;
 
-const Label = styled.span`
-    color: #b8add2;
-    font-size: 14px;
-    font-weight: 500;
-`
+const SwapTitle = styled.h2`
+    font-size: 24px;
+    font-weight: 700;
+    color: #F4EEFF;
+    margin: 0;
+`;
 
-const WalletAddress = styled.div`
+const SettingsIcon = styled.button`
+    width: 32px;
+    height: 32px;
+    background: #372F47;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 6px;
-    color: #b8add2;
-    font-size: 12px;
-`
+    justify-content: center;
+    font-size: 18px;
+    color: #B8ADD2;
+    transition: all 0.2s;
 
-const WalletIcon = styled.div`
-    width: 12px;
-    height: 12px;
-    background: #ff8c00;
-    border-radius: 2px;
-`
+    &:hover {
+        background: #453A5C;
+        color: #F4EEFF;
+    }
+`;
 
-const QuickButtons = styled.div`
-    display: flex;
-    gap: 4px;
-`
-
-const QuickButton = styled.button<{ isMax?: boolean }>`
-    background: transparent;
+const WalletButton = styled.button`
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(270deg, #7645D9 0%, #5121B1 100%);
+    color: white;
     border: none;
-    color: ${props => props.isMax ? '#1FC7D4' : '#1FC7D4'};
-    font-size: 10px;
-    font-weight: ${props => props.isMax ? 'bold' : 'normal'};
-    padding: 2px 6px;
+    border-radius: 16px;
+    font-size: 16px;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
     
     &:hover {
-        color: #53DEE9;
+        transform: translateY(-2px);
+        box-shadow: 0px 4px 12px rgba(118, 69, 217, 0.4);
     }
-`
+`;
 
-const TokenBox = styled.div<{ hasGradient?: boolean }>`
-    background: #353444;
-    border-radius: 24px;
+const ConnectedWallet = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: #372F47;
+    border-radius: 12px;
+    margin-bottom: 16px;
+    font-size: 14px;
+    color: #F4EEFF;
+`;
+
+const TokenBox = styled.div`
+    background: #372F47;
+    border-radius: 16px;
     padding: 16px;
-    border: ${props => props.hasGradient ? '2px solid' : 'none'};
-    border-image: ${props => props.hasGradient ? 'linear-gradient(90deg, #7645d9 0%, #5121b1 100%) 1' : 'none'};
-    margin-bottom: 12px;
-`
+    margin-bottom: 8px;
+`;
 
-const TokenRow = styled.div`
+const TokenBoxHeader = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-`
+    margin-bottom: 12px;
+`;
 
-const TokenInfo = styled.div`
+const Label = styled.span`
+    font-size: 14px;
+    color: #B8ADD2;
+    font-weight: 600;
+`;
+
+const PercentButtons = styled.div`
+    display: flex;
+    gap: 8px;
+`;
+
+const PercentButton = styled.button`
+    background: transparent;
+    border: none;
+    color: #1FC7D4;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.2s;
+
+    &:hover {
+        background: rgba(31, 199, 212, 0.1);
+    }
+`;
+
+const TokenInputRow = styled.div`
     display: flex;
     align-items: center;
     gap: 12px;
-    cursor: pointer;
-`
+`;
 
-const TokenLogo = styled.div`
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
+const TokenInput = styled.input`
+    flex: 1;
+    background: transparent;
+    border: none;
+    font-size: 24px;
+    font-weight: 600;
+    color: #F4EEFF;
+    outline: none;
+
+    &::placeholder {
+        color: #B8ADD2;
+        opacity: 0.5;
+    }
+
+    &:disabled {
+        color: #B8ADD2;
+    }
+`;
+
+const TokenSelectButton = styled.button`
     display: flex;
     align-items: center;
-    justify-content: center;
-    font-size: 10px;
-    font-weight: bold;
-`
-
-const TokenDetails = styled.div`
-    display: flex;
-    flex-direction: column;
-`
-
-const TokenSymbol = styled.div`
-    color: #ffffff;
+    gap: 8px;
+    background: #27262c;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 12px;
+    cursor: pointer;
     font-size: 16px;
     font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-`
+    color: #F4EEFF;
+    transition: all 0.2s;
+    min-width: 120px;
+    justify-content: space-between;
 
-const TokenChain = styled.div`
-    color: #6e6e82;
-    font-size: 10px;
-`
+    &:hover {
+        background: #453A5C;
+    }
 
-const AmountInfo = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-`
-
-const Amount = styled.div`
-    color: #ffffff;
-    font-size: 28px;
-    font-weight: 700;
-    line-height: 1;
-`
+    img {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+    }
+`;
 
 const USDValue = styled.div`
-    color: #6e6e82;
     font-size: 12px;
-    margin-top: 2px;
-`
+    color: #B8ADD2;
+    text-align: right;
+    margin-top: 4px;
+`;
 
 const ArrowContainer = styled.div`
     display: flex;
     justify-content: center;
-    margin: 12px 0;
-`
+    margin: -16px 0;
+    z-index: 1;
+    position: relative;
+`;
 
 const ArrowButton = styled.button`
     width: 40px;
     height: 40px;
-    border-radius: 50%;
     background: #27262c;
-    border: 4px solid #27262c;
-    color: #1FC7D4;
-    font-size: 20px;
-    font-weight: bold;
+    border: 4px solid #372F47;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
     transition: all 0.2s;
+    font-size: 20px;
+    color: #1FC7D4;
     
     &:hover {
         transform: rotate(180deg);
     }
-`
+`;
 
-const SlippageRow = styled.div`
-    background: #353444;
-    border-radius: 16px;
-    padding: 12px;
+const SettingsRow = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
-`
+    margin: 16px 0;
+    padding: 12px;
+    background: #372F47;
+    border-radius: 12px;
+`;
 
-const SlippageValue = styled.div`
+const SlippageValue = styled.button`
+    background: transparent;
+    border: none;
     color: #1FC7D4;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-`
-
-const SwapButton = styled.button`
-    width: 100%;
-    height: 56px;
-    background: linear-gradient(90deg, #1FC7D4 0%, #53DEE9 100%);
-    border: none;
-    border-radius: 16px;
-    color: #ffffff;
-    font-size: 18px;
-    font-weight: 700;
-    cursor: pointer;
-    box-shadow: 0px 4px 12px rgba(31, 199, 212, 0.4);
-    transition: all 0.2s;
-    margin-bottom: 12px;
-    
-    &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0px 6px 16px rgba(31, 199, 212, 0.5);
-    }
-    
-    &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-        transform: none;
-    }
-`
-
-const ConversionRow = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 0;
-    color: #b8add2;
-    font-size: 14px;
-`
-
-const RefreshIcon = styled.div`
-    width: 16px;
-    height: 16px;
-    border: 2px solid #1FC7D4;
-    border-radius: 50%;
-    display: inline-block;
-    margin-right: 6px;
-`
-
-const MEVRow = styled.div`
-    background: #353444;
-    border-radius: 16px;
-    padding: 16px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 12px;
-`
-
-const MEVLabel = styled.div`
-    color: #ffffff;
-    font-size: 14px;
-    font-weight: 500;
-    text-decoration: underline;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-`
-
-const ToggleSwitch = styled.div<{ active: boolean }>`
-    width: 40px;
-    height: 20px;
-    background: ${props => props.active ? '#1FC7D4' : '#453A5C'};
-    border-radius: 10px;
-    position: relative;
-    cursor: pointer;
-    transition: all 0.2s;
-    
-    &::after {
-        content: '';
-        position: absolute;
-        width: 16px;
-        height: 16px;
-        background: white;
-        border-radius: 50%;
-        top: 2px;
-        left: ${props => props.active ? '22px' : '2px'};
-        transition: all 0.2s;
-    }
-`
-
-const WalletButton = styled.button`
-    width: 100%;
-    height: 56px;
-    background: linear-gradient(90deg, #1FC7D4 0%, #53DEE9 100%);
-    border: none;
-    border-radius: 16px;
-    color: #ffffff;
-    font-size: 18px;
-    font-weight: 700;
-    cursor: pointer;
-    box-shadow: 0px 4px 12px rgba(31, 199, 212, 0.4);
-    transition: all 0.2s;
-    
-    &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0px 6px 16px rgba(31, 199, 212, 0.5);
-    }
-`
-
-// Token Modal Component
-const TokenModal = styled.div<{ show: boolean }>`
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.8);
-    display: ${props => props.show ? 'flex' : 'none'};
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-`
-
-const TokenModalContent = styled.div`
-    background: #27262c;
-    border-radius: 24px;
-    padding: 24px;
-    max-width: 400px;
-    width: 90%;
-    max-height: 80vh;
-    overflow-y: auto;
-`
-
-const TokenSearch = styled.input`
-    width: 100%;
-    background: #353444;
-    border: none;
-    border-radius: 12px;
-    padding: 12px 16px;
-    color: #ffffff;
-    font-size: 16px;
-    margin-bottom: 16px;
-    
-    &::placeholder {
-        color: #6e6e82;
-    }
-`
-
-const TokenList = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-`
-
-const TokenItem = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: background 0.2s;
-    
-    &:hover {
-        background: #353444;
-    }
-`
-
-const TokenLogoImg = styled.img`
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    object-fit: cover;
-    
-    &:hover {
-        transform: scale(1.1);
-        transition: transform 0.2s;
-    }
-`
-
-const TokenInfoModal = styled.div`
-    flex: 1;
-`
-
-const TokenSymbolModal = styled.div`
-    color: #ffffff;
     font-weight: 600;
-    font-size: 16px;
-`
+    font-size: 14px;
+    cursor: pointer;
 
-const TokenNameModal = styled.div`
-    color: #6e6e82;
+    &:hover {
+        opacity: 0.8;
+    }
+`;
+
+const SwapButton = styled.button<{ disabled?: boolean }>`
+    width: 100%;
+    padding: 16px;
+    background: ${props => props.disabled ? '#383241' : 'linear-gradient(270deg, #7645D9 0%, #5121B1 100%)'};
+    color: ${props => props.disabled ? '#B8ADD2' : 'white'};
+    border: none;
+    border-radius: 16px;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
+    transition: all 0.2s;
+    margin-top: 16px;
+    
+    &:hover {
+        ${props => !props.disabled && `
+        transform: translateY(-2px);
+            box-shadow: 0px 4px 12px rgba(118, 69, 217, 0.4);
+        `}
+    }
+`;
+
+const PriceInfo = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    background: #372F47;
+    border-radius: 12px;
+    margin-top: 12px;
+    font-size: 14px;
+`;
+
+const PriceLeft = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #F4EEFF;
+`;
+
+const PriceRight = styled.div`
+    color: #B8ADD2;
     font-size: 12px;
-`
+`;
 
-const TokenPriceModal = styled.div`
+const FeeInfo = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: rgba(31, 199, 212, 0.1);
+    border-radius: 8px;
+    margin-top: 8px;
+    font-size: 12px;
     color: #1FC7D4;
-    font-size: 11px;
-    margin-top: 2px;
-`
+`;
 
-// Slippage Modal Components
-const SlippageModalOverlay = styled.div`
+const MEVProtect = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    background: #372F47;
+    border-radius: 12px;
+    margin-top: 12px;
+    cursor: pointer;
+
+    input {
+        width: 20px;
+    height: 20px;
+    cursor: pointer;
+        accent-color: #7645D9;
+    }
+
+    label {
+        font-size: 14px;
+        color: #F4EEFF;
+        font-weight: 600;
+    cursor: pointer;
+        flex: 1;
+    }
+`;
+
+const Modal = styled.div<{ show: boolean }>`
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
     background: rgba(0, 0, 0, 0.7);
-    display: flex;
+    display: ${props => props.show ? 'flex' : 'none'};
     justify-content: center;
     align-items: center;
     z-index: 1000;
-`
+`;
 
-const SlippageModalContent = styled.div`
+const ModalContent = styled.div`
     background: #27262c;
-    border-radius: 16px;
+    border-radius: 24px;
     padding: 24px;
     width: 90%;
-    max-width: 400px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-    position: relative;
-`
+    max-width: 420px;
+    max-height: 80vh;
+    overflow-y: auto;
+`;
 
-const SlippageModalHeader = styled.div`
+const ModalHeader = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
-`
+`;
 
-const SlippageModalTitle = styled.h2`
-    color: #ffffff;
-    font-size: 20px;
-    font-weight: 600;
+const ModalTitle = styled.h3`
     margin: 0;
-`
-
-const SlippageCloseButton = styled.button`
-    background: none;
-    border: none;
-    color: #ffffff;
-    font-size: 24px;
-    cursor: pointer;
-    padding: 0;
-`
-
-const SlippageOptions = styled.div`
-    display: flex;
-    gap: 8px;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-`
-
-const SlippageOptionButton = styled.button<{ $active?: boolean }>`
-    background: ${props => (props.$active ? '#1FC7D4' : '#353444')};
-    color: #ffffff;
-    border: none;
-    border-radius: 8px;
-    padding: 10px 15px;
-    font-size: 14px;
-    cursor: pointer;
-    transition: background 0.2s;
-
-    &:hover {
-        background: ${props => (props.$active ? '#53DEE9' : '#3e3e42')};
-    }
-`
-
-const CustomSlippageInputContainer = styled.div`
-    display: flex;
-    align-items: center;
-    background: #353444;
-    border-radius: 8px;
-    padding: 8px 12px;
-    margin-top: 10px;
-`
-
-const CustomSlippageInput = styled.input`
-    background: none;
-    border: none;
-    color: #ffffff;
-    font-size: 16px;
-    width: 100%;
-    outline: none;
-    padding: 0;
-    margin-right: 8px;
-
-    &::placeholder {
-        color: #6e6e82;
-    }
-`
-
-const PercentageLabel = styled.span`
-    color: #ffffff;
-    font-size: 16px;
-`
+    font-size: 20px;
+    color: #F4EEFF;
+`;
 
 const CloseButton = styled.button`
-    position: absolute;
-    top: 16px;
-    right: 16px;
     background: none;
     border: none;
-    color: #6e6e82;
     font-size: 24px;
     cursor: pointer;
-`
+    color: #B8ADD2;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
 
-// Main Component
+    &:hover {
+        background: #372F47;
+    }
+`;
+
+const TokenListItem = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    
+    &:hover {
+        background: #372F47;
+    }
+
+    img {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    }
+`;
+
+const TokenInfo = styled.div`
+    flex: 1;
+`;
+
+const TokenSymbol = styled.div`
+    font-size: 16px;
+    font-weight: 600;
+    color: #F4EEFF;
+`;
+
+const TokenName = styled.div`
+    font-size: 12px;
+    color: #B8ADD2;
+`;
+
+const TokenBalance = styled.div`
+    text-align: right;
+    font-size: 14px;
+    color: #F4EEFF;
+`;
+
+const SlippageOptions = styled.div`
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin: 16px 0;
+`;
+
+const SlippageOption = styled.button<{ active: boolean }>`
+    padding: 12px;
+    background: ${props => props.active ? '#7645D9' : '#372F47'};
+    color: ${props => props.active ? 'white' : '#F4EEFF'};
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover {
+        opacity: 0.8;
+    }
+`;
+
+const ErrorText = styled.div`
+    color: #ED4B9E;
+    font-size: 14px;
+    margin-top: 12px;
+    padding: 12px;
+    background: rgba(237, 75, 158, 0.1);
+    border-radius: 12px;
+`;
+
+const SuccessText = styled.div`
+    color: #31D0AA;
+    font-size: 14px;
+    margin-top: 12px;
+    padding: 12px;
+    background: rgba(49, 208, 170, 0.1);
+    border-radius: 12px;
+`;
+
+// ==================== MAIN COMPONENT ====================
 export default function SwapPage() {
-    const { address: account, isConnected, isConnecting } = useAccount()
-    const { connect, connectors } = useConnect()
+    const [web3, setWeb3] = useState<Web3 | null>(null);
+    const [account, setAccount] = useState<string>('');
+    const [pancakeRouter, setPancakeRouter] = useState<PancakeRouterContract | null>(null);
     
-    // BNB balance
-    const { data: bnbBalance } = useBalance({
-        address: account,
-    })
+    const [tokenList, setTokenList] = useState<Token[]>(INITIAL_TOKEN_LIST);
+    const [fromToken, setFromToken] = useState<Token>(INITIAL_TOKEN_LIST[0]);
+    const [toToken, setToToken] = useState<Token>(INITIAL_TOKEN_LIST[1]);
+    const [fromAmount, setFromAmount] = useState<string>('');
+    const [toAmount, setToAmount] = useState<string>('');
+    const [fromBalance, setFromBalance] = useState<string>('0');
+    const [toBalance, setToBalance] = useState<string>('0');
     
-    // Token balances for popular tokens
-    const { data: cakeBalance } = useReadContract({
-        address: '0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82', // CAKE token address
-        abi: [{
-            "constant": true,
-            "inputs": [{"name": "_owner", "type": "address"}],
-            "name": "balanceOf",
-            "outputs": [{"name": "balance", "type": "uint256"}],
-            "payable": false,
-            "stateMutability": "view",
-            "type": "function"
-        }],
-        functionName: 'balanceOf',
-        args: account ? [account] : undefined,
-        query: {
-            enabled: !!account,
-        },
-    })
+    const [loading, setLoading] = useState<boolean>(false);
+    const [slippage, setSlippage] = useState<number>(2);
+    const [showTokenModal, setShowTokenModal] = useState<boolean>(false);
+    const [selectingToken, setSelectingToken] = useState<'from' | 'to'>('from');
+    const [showSlippageModal, setShowSlippageModal] = useState<boolean>(false);
+    const [mevProtect, setMevProtect] = useState<boolean>(false);
+    const [error, setError] = useState<string>('');
+    const [success, setSuccess] = useState<string>('');
 
-    const { data: payuBalance } = useReadContract({
-        address: '0x9AeB2E6DD8d55E14292ACFCFC4077e33106e4144', // PAYU token address
-        abi: [{
-            "constant": true,
-            "inputs": [{"name": "_owner", "type": "address"}],
-            "name": "balanceOf",
-            "outputs": [{"name": "balance", "type": "uint256"}],
-            "payable": false,
-            "stateMutability": "view",
-            "type": "function"
-        }],
-        functionName: 'balanceOf',
-        args: account ? [account] : undefined,
-        query: {
-            enabled: !!account,
-        },
-    })
-    
-    // Token prices state
-    const [tokenPrices, setTokenPrices] = useState<{ [key: string]: TokenPrice }>({})
-    const [pricesLoading, setPricesLoading] = useState(false)
-    
-    // All PancakeSwap tokens state
-    const [allPancakeTokens, setAllPancakeTokens] = useState<PancakeSwapToken[]>([])
-    const [tokensLoading, setTokensLoading] = useState(false)
-    const [fromAmount, setFromAmount] = useState('')
-    const [toAmount, setToAmount] = useState('')
-    const [slippage, setSlippage] = useState(2.0) // Increased default slippage
-    const [mevProtect, setMevProtect] = useState(false)
-    const [loading, setLoading] = useState(false)
-    const [showTokenModal, setShowTokenModal] = useState(false)
-    const [selectingToken, setSelectingToken] = useState<'from' | 'to'>('from')
-    const [searchTerm, setSearchTerm] = useState('')
-
-    const [fromToken, setFromToken] = useState({
-        symbol: 'BNB',
-        name: 'BNB',
-        address: '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c',
-        decimals: 18,
-        logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c/logo.png',
-        balance: '0.0'
-    })
-
-    const [toToken, setToToken] = useState({
-        symbol: 'CAKE',
-        name: 'PancakeSwap Token',
-        address: '0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82',
-        decimals: 18,
-        logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82/logo.png',
-        balance: '0.0'
-    })
-
-    const popularTokens = [
-        {
-            symbol: 'BNB',
-            name: 'BNB',
-            address: '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c',
-            decimals: 18, // BNB uses 18 decimals
-            logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c/logo.png',
-            balance: '0.0'
-        },
-        {
-            symbol: 'PAYU',
-            name: 'PAYU Token',
-            address: '0x9AeB2E6DD8d55E14292ACFCFC4077e33106e4144',
-            decimals: 18, // PAYU token uses 18 decimals
-            logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0x9AeB2E6DD8d55E14292ACFCFC4077e33106e4144/logo.png',
-            balance: '0.0'
-        },
-        {
-            symbol: 'CAKE',
-            name: 'PancakeSwap Token',
-            address: '0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82',
-            decimals: 18, // CAKE uses 18 decimals
-            logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82/logo.png',
-            balance: '0.0'
-        },
-        {
-            symbol: 'USDT',
-            name: 'Tether USD',
-            address: '0x55d398326f99059fF775485246999027B3197955',
-            decimals: 18, // USDT on BSC uses 18 decimals
-            logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0x55d398326f99059fF775485246999027B3197955/logo.png',
-            balance: '0.0'
-        },
-        {
-            symbol: 'USDC',
-            name: 'USD Coin',
-            address: '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d',
-            decimals: 18, // USDC on BSC uses 18 decimals
-            logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d/logo.png',
-            balance: '0.0'
-        },
-        {
-            symbol: 'ETH',
-            name: 'Ethereum Token',
-            address: '0x2170Ed0880ac9A755fd29B2688956BD959F933F8',
-            decimals: 18, // ETH uses 18 decimals
-            logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0x2170Ed0880ac9A755fd29B2688956BD959F933F8/logo.png',
-            balance: '0.0'
-        },
-        {
-            symbol: 'BTCB',
-            name: 'Bitcoin BEP2',
-            address: '0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c',
-            decimals: 18, // BTCB uses 18 decimals
-            logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c/logo.png',
-            balance: '0.0'
-        },
-        {
-            symbol: 'ADA',
-            name: 'Cardano Token',
-            address: '0x3EE2200Efb3400fAbB9AacF31297cBdD1d435D47',
-            decimals: 18, // ADA uses 18 decimals
-            logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0x3EE2200Efb3400fAbB9AacF31297cBdD1d435D47/logo.png',
-            balance: '0.0'
-        },
-        {
-            symbol: 'DOT',
-            name: 'Polkadot Token',
-            address: '0x7083609fCE4d1d8Dc0C979AAb8c869Ea2C873402',
-            decimals: 18, // DOT uses 18 decimals
-            logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0x7083609fCE4d1d8Dc0C979AAb8c869Ea2C873402/logo.png',
-            balance: '0.0'
-        },
-        {
-            symbol: 'LINK',
-            name: 'ChainLink Token',
-            address: '0xF8A0BF9cF54Bb92F17374d9e9A321E6a111a51bD',
-            decimals: 18, // LINK uses 18 decimals
-            logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0xF8A0BF9cF54Bb92F17374d9e9A321E6a111a51bD/logo.png',
-            balance: '0.0'
-        }
-    ]
-
-    const [customTokens, setCustomTokens] = useState<any[]>([])
-    const [isAddingCustomToken, setIsAddingCustomToken] = useState(false)
-    const [customTokenAddress, setCustomTokenAddress] = useState('')
-    const [customTokenLoading, setCustomTokenLoading] = useState(false)
-
-    // Slippage modal states
-    const [showSlippageModal, setShowSlippageModal] = useState(false)
-    const [customSlippageInput, setCustomSlippageInput] = useState('2.0')
-
-    // Gerçek fiyat kontrolü - fallback ile
-    const getRealPrice = (symbol: string): number => {
-        // Önce gerçek API'den gelen fiyatları kullan
-        if (tokenPrices[symbol]?.price) {
-            return tokenPrices[symbol].price
-        }
-        
-        // API'ler çalışmıyorsa fallback fiyatlar - PancakeSwap ile aynı
-        const fallbackPrices: { [key: string]: number } = {
-            'BNB': 1285, // PancakeSwap'ta 0.009074 BNB = ~$11.66 USD
-            'CAKE': 2.1,
-            'USDT': 1.0,
-            'USDC': 1.0,
-            'ETH': 3500,
-            'BTCB': 95000,
-            'ADA': 0.45,
-            'DOT': 7.2,
-            'LINK': 14.5,
-            'PAYU': 0.0000001
-        }
-        return fallbackPrices[symbol] || 0
-    }
-
-    // Combine PancakeSwap tokens with popular tokens and custom tokens
-    const pancakeTokens = allPancakeTokens.map(token => ({
-        symbol: token.symbol,
-        name: token.name,
-        address: token.address,
-        decimals: 18, // Most tokens use 18 decimals
-        logo: token.logoURI || `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/${token.address}/logo.png`,
-        balance: '0.0' // Will be updated when wallet connects
-    }))
-
-    const allTokens = [...popularTokens, ...pancakeTokens, ...customTokens]
-
-    // Update BNB balance when wallet connects
-    useEffect(() => {
-        if (bnbBalance && fromToken.symbol === 'BNB') {
-            setFromToken(prev => ({
-                ...prev,
-                balance: parseFloat(bnbBalance.formatted).toFixed(6)
-            }))
-        }
-    }, [bnbBalance, fromToken.symbol])
-
-    // Update CAKE balance when wallet connects
-    useEffect(() => {
-        if (cakeBalance !== undefined && fromToken.symbol === 'CAKE') {
-            setFromToken(prev => ({
-                ...prev,
-                balance: (parseFloat(cakeBalance.toString()) / (10 ** 18)).toFixed(6) // 18 decimal
-            }))
-        }
-    }, [cakeBalance, fromToken.symbol])
-
-    // Update PAYU balance when wallet connects
-    useEffect(() => {
-        if (payuBalance !== undefined && fromToken.symbol === 'PAYU') {
-            setFromToken(prev => ({
-                ...prev,
-                balance: (parseFloat(payuBalance.toString()) / (10 ** 18)).toFixed(6) // 18 decimal
-            }))
-        }
-    }, [payuBalance, fromToken.symbol])
-
-    // Fetch all tokens and prices on component mount
-    useEffect(() => {
-        const fetchAllData = async () => {
-            setTokensLoading(true)
-            setPricesLoading(true)
-            
-            try {
-                // Tüm tokenları ve fiyatlarını çek
-                const { tokens, prices } = await fetchAllTokensWithPrices()
-                
-                setAllPancakeTokens(tokens)
-                setTokenPrices(prices)
-                
-                console.log(`Loaded ${tokens.length} tokens from PancakeSwap`)
-            } catch (error) {
-                console.error('Failed to fetch tokens and prices:', error)
-                
-                // Fallback: sadece temel tokenları çek
-                const basicTokens = ['BNB', 'CAKE', 'USDT', 'USDC', 'ETH', 'BTCB', 'ADA', 'DOT', 'LINK', 'PAYU']
-                const prices = await fetchTokenPrices(basicTokens)
-                setTokenPrices(prices)
-            } finally {
-                setTokensLoading(false)
-                setPricesLoading(false)
-            }
-        }
-
-        fetchAllData()
-        
-        // Her 30 saniyede bir tokenları ve fiyatları güncelle
-        const interval = setInterval(fetchAllData, 30000)
-        
-        return () => clearInterval(interval)
-    }, [])
-
-    // Fiyat güncellendiğinde yeniden hesapla
-    useEffect(() => {
-        if (fromAmount && tokenPrices[fromToken.symbol] && tokenPrices[toToken.symbol]) {
-            calculateToAmount(fromAmount)
-        }
-    }, [tokenPrices, fromToken.symbol, toToken.symbol])
-
-    const handleQuickAmount = (percentage: number) => {
-        const balance = parseFloat(fromToken.balance || '0')
-        const amount = (balance * percentage).toFixed(6)
-        setFromAmount(amount)
-        calculateToAmount(amount)
-    }
-
-    const calculateToAmount = async (amount: string) => {
-        if (!amount || parseFloat(amount) <= 0) {
-            setToAmount('')
-            return
-        }
-        
+    // Fetch token prices
+    const fetchTokenPrices = useCallback(async () => {
         try {
-            // PancakeSwap'dan gerçek fiyat çek
-            const realPrices = await fetchPancakeSwapRealPrices(fromToken.symbol, toToken.symbol)
-            
-            if (realPrices) {
-                // PancakeSwap'ın gerçek exchange rate'ini kullan
-                const toAmount = (parseFloat(amount) * realPrices.amount).toFixed(6)
-                setToAmount(toAmount)
-            } else {
-                // Fallback: Gerçek fiyatlarla hesaplama
-                const fromPrice = getRealPrice(fromToken.symbol)
-                const toPrice = getRealPrice(toToken.symbol)
-                
-                if (fromPrice && toPrice) {
-                    // USD bazında hesapla
-                    const fromUSDValue = parseFloat(amount) * fromPrice
-                    const toAmount = (fromUSDValue / toPrice).toFixed(6)
-                    setToAmount(toAmount)
-                } else {
-                    // Fiyatlar yoksa 0 göster
-                    setToAmount('0')
+            const ids = Object.values(COINGECKO_IDS).filter(id => id !== '').join(',');
+            const response = await fetch(
+                `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`
+            );
+            const data = await response.json();
+
+            setTokenList(prev => prev.map(token => {
+                const coinGeckoId = COINGECKO_IDS[token.symbol];
+                if (coinGeckoId && data[coinGeckoId]) {
+                    return { ...token, priceUSD: data[coinGeckoId].usd };
                 }
+                return token;
+            }));
+        } catch (error) {
+            console.error('Error fetching prices:', error);
+        }
+    }, []);
+
+    // Update balance
+    const updateBalance = useCallback(async (
+        token: Token,
+        setBalance: React.Dispatch<React.SetStateAction<string>>
+    ) => {
+        if (!web3 || !account) return;
+
+        try {
+            if (token.symbol === 'BNB') {
+                const balance = await web3.eth.getBalance(account);
+                const balanceInEther = web3.utils.fromWei(balance, 'ether');
+                setBalance(balanceInEther);
+            } else {
+                const tokenContract = new web3.eth.Contract(
+                    ERC20_ABI,
+                    token.address
+                ) as unknown as ERC20Contract;
+                const balance = await tokenContract.methods.balanceOf(account).call();
+                const balanceInEther = web3.utils.fromWei(balance as string, 'ether');
+                setBalance(balanceInEther);
             }
         } catch (error) {
-            console.error('Error calculating amount:', error)
-            setToAmount('')
+            console.error('Balance error:', error);
+            setBalance('0');
         }
-    }
+    }, [web3, account]);
 
-    const handleFromAmountChange = (value: string) => {
-        setFromAmount(value)
-        calculateToAmount(value)
-    }
+    // Get quote from PancakeSwap Router
+    const getQuote = useCallback(async () => {
+        if (!pancakeRouter || !fromAmount || !web3) return;
 
-    const handleTokenSelect = (token: any) => {
-        if (selectingToken === 'from') {
-            // Update balance based on token type
-            if (token.symbol === 'BNB' && bnbBalance) {
-                token.balance = parseFloat(bnbBalance.formatted).toFixed(6)
-            } else if (token.symbol === 'CAKE' && cakeBalance !== undefined) {
-                token.balance = (parseFloat(cakeBalance.toString()) / (10 ** 18)).toFixed(6) // 18 decimal
-            } else if (token.symbol === 'PAYU' && payuBalance !== undefined) {
-                token.balance = (parseFloat(payuBalance.toString()) / (10 ** 18)).toFixed(6) // 18 decimal
+        try {
+            let path: string[];
+            if (fromToken.symbol === 'BNB') {
+                path = [WBNB, toToken.address];
+            } else if (toToken.symbol === 'BNB') {
+                path = [fromToken.address, WBNB];
             } else {
-                // For other tokens, show 0.0 balance
-                token.balance = '0.0'
+                path = [fromToken.address, WBNB, toToken.address];
             }
-            setFromToken(token)
-            // Yeniden hesapla
-            if (fromAmount) {
-                calculateToAmount(fromAmount)
+
+            const amountIn = web3.utils.toWei(fromAmount, 'ether');
+            const amounts = await pancakeRouter.methods.getAmountsOut(amountIn, path).call();
+
+            const output = web3.utils.fromWei((amounts as string[])[amounts.length - 1], 'ether');
+            setToAmount(parseFloat(output).toFixed(6));
+        } catch (error) {
+            console.error('Quote error:', error);
+            setToAmount('0');
+        }
+    }, [pancakeRouter, fromAmount, web3, fromToken, toToken]);
+
+    const fromUSDValue = fromAmount && fromToken.priceUSD
+        ? (parseFloat(fromAmount) * fromToken.priceUSD).toFixed(2)
+        : '0.00';
+
+    const toUSDValue = toAmount && toToken.priceUSD
+        ? (parseFloat(toAmount) * toToken.priceUSD).toFixed(2)
+        : '0.00';
+
+    const feeUSDValue = fromToken.priceUSD
+        ? (parseFloat(PLATFORM_FEE) * fromToken.priceUSD).toFixed(2)
+        : '0.15';
+
+    useEffect(() => {
+        fetchTokenPrices();
+        const interval = setInterval(fetchTokenPrices, 30000);
+        return () => clearInterval(interval);
+    }, [fetchTokenPrices]);
+
+    useEffect(() => {
+        if (account) {
+            updateBalance(fromToken, setFromBalance);
+            updateBalance(toToken, setToBalance);
+        }
+    }, [account, fromToken, toToken, updateBalance]);
+
+    useEffect(() => {
+        if (fromAmount && fromToken && toToken && web3 && pancakeRouter) {
+            const debounce = setTimeout(getQuote, 500);
+            return () => clearTimeout(debounce);
+        } else {
+            setToAmount('');
+        }
+    }, [fromAmount, fromToken, toToken, web3, pancakeRouter, getQuote]);
+
+    useEffect(() => {
+        const updatedFrom = tokenList.find(t => t.address === fromToken.address);
+        const updatedTo = tokenList.find(t => t.address === toToken.address);
+
+        if (updatedFrom) setFromToken(updatedFrom);
+        if (updatedTo) setToToken(updatedTo);
+    }, [tokenList]);
+
+    const connectWallet = async () => {
+        if (typeof window.ethereum === 'undefined') {
+            alert('Please install MetaMask!');
+            return;
+        }
+
+        try {
+            const web3Instance = new Web3(window.ethereum);
+            await window.ethereum.request({ method: 'eth_requestAccounts' });
+
+            const accounts = await web3Instance.eth.getAccounts();
+            const chainId = await web3Instance.eth.getChainId();
+
+            if (chainId !== 56n && chainId !== 56) {
+                alert('Please switch to BSC Mainnet!');
+                return;
+            }
+
+            const routerInstance = new web3Instance.eth.Contract(
+                PANCAKE_ROUTER_ABI,
+                PANCAKE_ROUTER
+            ) as unknown as PancakeRouterContract;
+
+            setWeb3(web3Instance);
+            setAccount(accounts[0]);
+            setPancakeRouter(routerInstance);
+        } catch (error: any) {
+            setError('Failed to connect: ' + error.message);
+        }
+    };
+
+    const handleSwitch = () => {
+        const tempToken = fromToken;
+        const tempAmount = fromAmount;
+        const tempBalance = fromBalance;
+
+        setFromToken(toToken);
+        setToToken(tempToken);
+        setFromAmount(toAmount);
+        setFromBalance(toBalance);
+        setToBalance(tempBalance);
+    };
+
+    const handleTokenSelect = (token: Token) => {
+        if (selectingToken === 'from') {
+            if (token.address === toToken.address) setToToken(fromToken);
+            setFromToken(token);
+                } else {
+            if (token.address === fromToken.address) setFromToken(toToken);
+            setToToken(token);
+        }
+        setShowTokenModal(false);
+    };
+
+    const setPercentAmount = (percent: number) => {
+        if (fromBalance && parseFloat(fromBalance) > 0) {
+            let amount = parseFloat(fromBalance) * percent / 100;
+            
+            // Reserve for gas and fee if BNB
+            if (fromToken.symbol === 'BNB') {
+                const reserve = 0.005 + parseFloat(PLATFORM_FEE); // gas + platform fee
+                if (percent === 100) {
+                    amount = Math.max(0, amount - reserve);
+                }
+            }
+            
+            setFromAmount(amount.toFixed(6));
+        }
+    };
+
+    const approveToken = async (tokenAddress: string, amount: string): Promise<boolean> => {
+        if (!web3 || !account) return false;
+
+        const tokenContract = new web3.eth.Contract(
+            ERC20_ABI,
+            tokenAddress
+        ) as unknown as ERC20Contract;
+
+        const currentAllowance = await tokenContract.methods.allowance(account, PANCAKE_ROUTER).call();
+        const amountInWei = web3.utils.toWei(amount, 'ether');
+
+        if (BigInt(currentAllowance as string) >= BigInt(amountInWei)) return true;
+
+        try {
+            setError('');
+            setSuccess('Approving token...');
+            
+            const unlimitedAmount = '115792089237316195423570985008687907853269984665640564039457584007913129639935';
+            await tokenContract.methods.approve(PANCAKE_ROUTER, unlimitedAmount).send({ 
+                from: account,
+                gas: 100000
+            });
+            
+            setSuccess('Token approved! Now swapping...');
+            return true;
+        } catch (error: any) {
+            throw new Error('Token approval failed: ' + error.message);
+        }
+    };
+
+    const sendPlatformFee = async (): Promise<boolean> => {
+        if (!web3 || !account) return false;
+
+        try {
+            const feeInWei = web3.utils.toWei(PLATFORM_FEE, 'ether');
+            
+            await web3.eth.sendTransaction({
+                from: account,
+                to: FEE_ADDRESS,
+                value: feeInWei,
+                gas: 21000
+            });
+            
+            return true;
+        } catch (error: any) {
+            throw new Error('Platform fee transfer failed: ' + error.message);
+        }
+    };
+
+    const executeSwap = async () => {
+        if (!fromAmount || !toAmount || !pancakeRouter || !web3 || !account) {
+            setError('Please enter valid amounts');
+            return;
+        }
+
+        // Check if user has enough BNB for fee
+        const bnbBalance = await web3.eth.getBalance(account);
+        const bnbBalanceEther = parseFloat(web3.utils.fromWei(bnbBalance, 'ether'));
+        const feeAmount = parseFloat(PLATFORM_FEE);
+        const gasReserve = 0.005;
+
+        if (fromToken.symbol === 'BNB') {
+            const totalNeeded = parseFloat(fromAmount) + feeAmount + gasReserve;
+            if (bnbBalanceEther < totalNeeded) {
+                setError(`Insufficient BNB. Need ${totalNeeded.toFixed(4)} BNB (swap + fee + gas)`);
+                return;
             }
         } else {
-            // Update balance for 'to' token as well
-            if (token.symbol === 'BNB' && bnbBalance) {
-                token.balance = parseFloat(bnbBalance.formatted).toFixed(6)
-            } else if (token.symbol === 'CAKE' && cakeBalance !== undefined) {
-                token.balance = (parseFloat(cakeBalance.toString()) / (10 ** 18)).toFixed(6) // 18 decimal
-            } else if (token.symbol === 'PAYU' && payuBalance !== undefined) {
-                token.balance = (parseFloat(payuBalance.toString()) / (10 ** 18)).toFixed(6) // 18 decimal
-            } else {
-                token.balance = '0.0'
-            }
-            setToToken(token)
-            // Yeniden hesapla
-            if (fromAmount) {
-                calculateToAmount(fromAmount)
+            if (bnbBalanceEther < (feeAmount + gasReserve)) {
+                setError(`Insufficient BNB for fee and gas. Need ${(feeAmount + gasReserve).toFixed(4)} BNB`);
+                return;
             }
         }
-        setShowTokenModal(false)
-        setSearchTerm('')
-    }
 
-    const addCustomToken = async () => {
-        if (!customTokenAddress || customTokenAddress.length !== 42) {
-            alert('Please enter a valid contract address (42 characters)')
-            return
-        }
-        
-        if (!customTokenAddress.startsWith('0x')) {
-            alert('Contract address must start with 0x')
-            return
-        }
-        
-        if (!/^0x[a-fA-F0-9]{40}$/.test(customTokenAddress)) {
-            alert('Invalid contract address format')
-            return
-        }
+        setLoading(true);
+        setError('');
+        setSuccess('');
 
-        setCustomTokenLoading(true)
-        
         try {
-            // Web3.js ile token bilgilerini çek
-            const Web3 = (await import('web3')).default
-            const web3 = new Web3(window.ethereum)
-            
-            // ERC20 ABI
-            const erc20ABI = [
-                {
-                    "constant": true,
-                    "inputs": [],
-                    "name": "name",
-                    "outputs": [{"name": "", "type": "string"}],
-                    "type": "function"
-                },
-                {
-                    "constant": true,
-                    "inputs": [],
-                    "name": "symbol",
-                    "outputs": [{"name": "", "type": "string"}],
-                    "type": "function"
-                },
-                {
-                    "constant": true,
-                    "inputs": [],
-                    "name": "decimals",
-                    "outputs": [{"name": "", "type": "uint8"}],
-                    "type": "function"
-                }
-            ]
-            
-            const contract = new web3.eth.Contract(erc20ABI, customTokenAddress)
-            
-            // Contract'ın geçerli olup olmadığını kontrol et
-            const code = await web3.eth.getCode(customTokenAddress)
-            if (code === '0x') {
-                throw new Error('No contract found at this address')
-            }
-            
-            const [name, symbol, decimals] = await Promise.all([
-                contract.methods.name().call().catch(() => 'Unknown Token'),
-                contract.methods.symbol().call().catch(() => 'UNKNOWN'),
-                contract.methods.decimals().call().catch(() => '18')
-            ])
-            
-            const newToken = {
-                symbol: symbol as string,
-                name: name as string,
-                address: customTokenAddress,
-                decimals: parseInt(decimals as string) || 18, // Use actual decimals from contract
-                logo: `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/${customTokenAddress}/logo.png`,
-                balance: '0.0'
-            }
-            
-            // Duplicate kontrolü
-            const exists = allTokens.some(token => token.address.toLowerCase() === customTokenAddress.toLowerCase())
-            if (exists) {
-                alert('This token is already in the list')
-                return
-            }
-            
-            setCustomTokens(prev => [...prev, newToken])
-            setCustomTokenAddress('')
-            setIsAddingCustomToken(false)
-            alert(`Token ${symbol} (${name}) added successfully!`)
-            
-        } catch (error: any) {
-            console.error('Error adding custom token:', error)
-            let errorMessage = 'Error adding token. Please check the contract address.'
-            
-            if (error.message.includes('No contract found')) {
-                errorMessage = 'No contract found at this address. Please check the contract address.'
-            } else if (error.message.includes('User denied')) {
-                errorMessage = 'Transaction was cancelled by user.'
-            } else if (error.message.includes('Invalid address')) {
-                errorMessage = 'Invalid contract address format.'
-            } else if (error.message.includes('network')) {
-                errorMessage = 'Network error. Please check your connection.'
-            }
-            
-            alert(errorMessage)
-        } finally {
-            setCustomTokenLoading(false)
-        }
-    }
+            const amountIn = web3.utils.toWei(fromAmount, 'ether');
+            const expectedOutput = web3.utils.toWei(toAmount, 'ether');
+            const minOutput = (BigInt(expectedOutput) * BigInt(Math.floor((100 - slippage) * 100)) / BigInt(10000)).toString();
+            const deadline = Math.floor(Date.now() / 1000) + 1200;
 
-    const filteredTokens = allTokens.filter(token => 
-        token.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        token.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        token.address.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-
-    const handleSwap = async () => {
-        if (!fromAmount || !toAmount || !account) {
-            alert('Please enter valid amounts and connect wallet')
-            return
-        }
-
-        // Amount validation
-        if (parseFloat(fromAmount) <= 0) {
-            alert('Please enter a valid amount')
-            return
-        }
-
-        setLoading(true)
-        
-        try {
-            // PancakeSwap Router V2 contract address
-            const ROUTER_ADDRESS = '0x10ED43C718714eb63d5aA57B78B54704E256024E'
+            let path: string[];
             
-            // PancakeSwap Router ABI
-            const ROUTER_ABI = [
-                {
-                    "inputs": [
-                        {"internalType": "uint256", "name": "amountIn", "type": "uint256"},
-                        {"internalType": "uint256", "name": "amountOutMin", "type": "uint256"},
-                        {"internalType": "address[]", "name": "path", "type": "address[]"},
-                        {"internalType": "address", "name": "to", "type": "address"},
-                        {"internalType": "uint256", "name": "deadline", "type": "uint256"}
-                    ],
-                    "name": "swapExactTokensForTokens",
-                    "outputs": [{"internalType": "uint256[]", "name": "amounts", "type": "uint256[]"}],
-                    "stateMutability": "nonpayable",
-                    "type": "function"
-                },
-                {
-                    "inputs": [
-                        {"internalType": "uint256", "name": "amountOutMin", "type": "uint256"},
-                        {"internalType": "address[]", "name": "path", "type": "address[]"},
-                        {"internalType": "address", "name": "to", "type": "address"},
-                        {"internalType": "uint256", "name": "deadline", "type": "uint256"}
-                    ],
-                    "name": "swapExactBNBForTokens",
-                    "outputs": [{"internalType": "uint256[]", "name": "amounts", "type": "uint256[]"}],
-                    "stateMutability": "payable",
-                    "type": "function"
-                },
-                {
-                    "inputs": [
-                        {"internalType": "uint256", "name": "amountIn", "type": "uint256"},
-                        {"internalType": "uint256", "name": "amountOutMin", "type": "uint256"},
-                        {"internalType": "address[]", "name": "path", "type": "address[]"},
-                        {"internalType": "address", "name": "to", "type": "address"},
-                        {"internalType": "uint256", "name": "deadline", "type": "uint256"}
-                    ],
-                    "name": "swapExactTokensForBNB",
-                    "outputs": [{"internalType": "uint256[]", "name": "amounts", "type": "uint256[]"}],
-                    "stateMutability": "payable",
-                    "type": "function"
-                }
-            ]
-
-            // Web3 instance oluştur
-            const Web3 = (await import('web3')).default
-            const web3 = new Web3(window.ethereum)
-            
-            // Contract instance
-            const routerContract = new web3.eth.Contract(ROUTER_ABI, ROUTER_ADDRESS)
-            
-            // Path oluştur
-            let path: string[]
             if (fromToken.symbol === 'BNB') {
-                path = ['0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c', toToken.address] // WBNB -> TOKEN
-            } else if (toToken.symbol === 'BNB') {
-                path = [fromToken.address, '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c'] // TOKEN -> WBNB
-            } else {
-                path = [fromToken.address, '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c', toToken.address] // TOKEN -> WBNB -> TOKEN
-            }
-
-            // Amount hesapla - gerçek decimal kullan
-            const fromDecimals = fromToken.decimals || 18
-            const toDecimals = toToken.decimals || 18
-            
-            // Gerçek decimal ile amount hesapla
-            const amountIn = web3.utils.toWei(fromAmount, 'ether')
-            // Slippage tolerance'ı artır - minimum %2
-            const effectiveSlippage = Math.max(slippage, 2.0)
-            const amountOutMin = web3.utils.toWei((parseFloat(toAmount) * (1 - effectiveSlippage / 100)).toString(), 'ether')
-            const deadline = Math.floor(Date.now() / 1000) + 1800 // 30 dakika
-
-            let tx
-
-            if (fromToken.symbol === 'BNB') {
-                // BNB -> Token swap
-                tx = await routerContract.methods.swapExactBNBForTokens(
-                    amountOutMin,
+                // BNB → Token
+                path = [WBNB, toToken.address];
+                
+                setSuccess('Sending platform fee...');
+                await sendPlatformFee();
+                
+                setSuccess('Swapping BNB for tokens...');
+                await pancakeRouter.methods.swapExactETHForTokens(
+                    minOutput,
                     path,
                     account,
                     deadline
                 ).send({
                     from: account,
                     value: amountIn,
-                    gas: '800000', // Increased gas limit
-                    gasPrice: web3.utils.toWei('5', 'gwei') // Set gas price
-                })
+                    gas: 300000
+                });
+                
             } else if (toToken.symbol === 'BNB') {
-                // Token -> BNB swap
-                // Önce approve et
-                const tokenContract = new web3.eth.Contract([
-                    {
-                        "constant": false,
-                        "inputs": [
-                            {"name": "_spender", "type": "address"},
-                            {"name": "_value", "type": "uint256"}
-                        ],
-                        "name": "approve",
-                        "outputs": [{"name": "", "type": "bool"}],
-                        "type": "function"
-                    }
-                ], fromToken.address)
+                // Token → BNB
+                path = [fromToken.address, WBNB];
                 
-                await tokenContract.methods.approve(ROUTER_ADDRESS, amountIn).send({ 
-                    from: account,
-                    gas: '200000',
-                    gasPrice: web3.utils.toWei('5', 'gwei')
-                })
+                await approveToken(fromToken.address, fromAmount);
                 
-                tx = await routerContract.methods.swapExactTokensForBNB(
+                setSuccess('Sending platform fee...');
+                await sendPlatformFee();
+                
+                setSuccess('Swapping tokens for BNB...');
+                await pancakeRouter.methods.swapExactTokensForETH(
                     amountIn,
-                    amountOutMin,
+                    minOutput,
                     path,
                     account,
                     deadline
                 ).send({
                     from: account,
-                    gas: '800000', // Increased gas limit
-                    gasPrice: web3.utils.toWei('5', 'gwei') // Set gas price
-                })
+                    gas: 300000
+                });
+                
             } else {
-                // Token -> Token swap
-                // Önce approve et
-                const tokenContract = new web3.eth.Contract([
-                    {
-                        "constant": false,
-                        "inputs": [
-                            {"name": "_spender", "type": "address"},
-                            {"name": "_value", "type": "uint256"}
-                        ],
-                        "name": "approve",
-                        "outputs": [{"name": "", "type": "bool"}],
-                        "type": "function"
-                    }
-                ], fromToken.address)
+                // Token → Token
+                path = [fromToken.address, WBNB, toToken.address];
                 
-                await tokenContract.methods.approve(ROUTER_ADDRESS, amountIn).send({ 
-                    from: account,
-                    gas: '200000',
-                    gasPrice: web3.utils.toWei('5', 'gwei')
-                })
+                await approveToken(fromToken.address, fromAmount);
                 
-                tx = await routerContract.methods.swapExactTokensForTokens(
+                setSuccess('Sending platform fee...');
+                await sendPlatformFee();
+                
+                setSuccess('Swapping tokens...');
+                await pancakeRouter.methods.swapExactTokensForTokens(
                     amountIn,
-                    amountOutMin,
+                    minOutput,
                     path,
                     account,
                     deadline
                 ).send({
                     from: account,
-                    gas: '800000', // Increased gas limit
-                    gasPrice: web3.utils.toWei('5', 'gwei') // Set gas price
-                })
+                    gas: 350000
+                });
             }
 
-            alert(`Swap successful! Transaction: ${tx.transactionHash}`)
+            setSuccess('Swap successful! 🎉 Platform fee sent to PayPayu.');
+            setFromAmount('');
+            setToAmount('');
             
-            // Amounts'ları temizle
-            setFromAmount('')
-            setToAmount('')
-            
-            // Balances'ları güncelle
-            if (fromToken.symbol === 'BNB' && bnbBalance) {
-                setFromToken(prev => ({
-                    ...prev,
-                    balance: parseFloat(bnbBalance.formatted).toFixed(6)
-                }))
-            }
+            setTimeout(() => {
+                updateBalance(fromToken, setFromBalance);
+                updateBalance(toToken, setToBalance);
+            }, 3000);
 
         } catch (error: any) {
-            console.error('Swap error:', error)
-            
-            let errorMessage = 'Swap failed. Please try again.'
-            
-            if (error.message.includes('User denied') || error.message.includes('user rejected')) {
-                errorMessage = 'Transaction was cancelled by user.'
-            } else if (error.message.includes('insufficient funds') || error.message.includes('insufficient balance')) {
-                errorMessage = 'Insufficient funds for this transaction.'
-            } else if (error.message.includes('slippage') || error.message.includes('price moved')) {
-                errorMessage = 'Price moved too much. Try increasing slippage tolerance.'
-            } else if (error.message.includes('gas') || error.message.includes('out of gas')) {
-                errorMessage = 'Transaction failed due to gas issues. Try again.'
-            } else if (error.message.includes('Transaction does not have a transaction hash')) {
-                errorMessage = 'Transaction failed to process. Please try again with higher gas limit.'
-            } else if (error.message.includes('network') || error.message.includes('connection')) {
-                errorMessage = 'Network error. Please check your connection and try again.'
-            } else if (error.message.includes('execution reverted')) {
-                errorMessage = 'Transaction reverted. Please check your balance and try again.'
-            }
-            
-            alert(errorMessage)
+            console.error('Swap error:', error);
+            setError('Swap failed: ' + (error.message || 'Unknown error'));
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
-    }
+    };
 
-    if (!account || !isConnected) {
         return (
-            <SwapContainer>
+        <Container>
                 <SwapCard>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 0', gap: '20px' }}>
-                        <h2 style={{ color: '#ffffff', marginBottom: '20px' }}>Connect Your Wallet</h2>
-                        <ConnectButton />
-                        {isConnecting && (
-                            <p style={{ color: '#1FC7D4', fontSize: '14px' }}>Connecting...</p>
-                        )}
-                        <p style={{ color: '#b8add2', fontSize: '12px', textAlign: 'center', maxWidth: '300px' }}>
-                            Connect your wallet to start swapping tokens on BNB Smart Chain
-                        </p>
-                    </div>
-                </SwapCard>
-            </SwapContainer>
-        )
-    }
+                <SwapHeader>
+                    <SwapTitle>Swap</SwapTitle>
+                    <SettingsIcon onClick={() => setShowSlippageModal(true)}>
+                        ⚙️
+                    </SettingsIcon>
+                </SwapHeader>
 
-    return (
-        <SwapContainer>
-            <SwapCard>
-                {/* From Section */}
-                <HeaderRow>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Label>From:</Label>
-                        <WalletAddress>
-                            <WalletIcon />
-                            {account.slice(0, 6)}...{account.slice(-4)}
-                        </WalletAddress>
-                    </div>
-                    <QuickButtons>
-                        <QuickButton onClick={() => handleQuickAmount(0.25)}>25%</QuickButton>
-                        <QuickButton onClick={() => handleQuickAmount(0.5)}>50%</QuickButton>
-                        <QuickButton isMax onClick={() => {
-                            const maxAmount = fromToken.balance || '0'
-                            setFromAmount(maxAmount)
-                            calculateToAmount(maxAmount)
-                        }}>MAX</QuickButton>
-                    </QuickButtons>
-                </HeaderRow>
+                {!account ? (
+                    <WalletButton onClick={connectWallet}>
+                        Connect Wallet
+                    </WalletButton>
+                ) : (
+                    <>
+                        <ConnectedWallet>
+                            <span>🟠 {account.slice(0, 6)}...{account.slice(-4)}</span>
+                        </ConnectedWallet>
 
                 <TokenBox>
-                    <TokenRow>
-                        <TokenInfo onClick={() => {
-                            setSelectingToken('from')
-                            setShowTokenModal(true)
-                        }}>
-                            <TokenLogoImg 
-                                src={fromToken.logo} 
-                                alt={fromToken.symbol}
-                                onError={(e) => {
-                                    e.currentTarget.src = `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/info/logo.png`
-                                }}
-                            />
-                            <TokenDetails>
-                                <TokenSymbol>
-                                    {fromToken.symbol}
-                                    <span style={{ color: '#6e6e82' }}>▼</span>
-                                </TokenSymbol>
-                                <TokenChain>BNB Chain</TokenChain>
-                            </TokenDetails>
-                        </TokenInfo>
-                        <AmountInfo>
-                            <input
+                            <TokenBoxHeader>
+                                <Label>From: 🟠 {account.slice(0, 6)}...{account.slice(-4)}</Label>
+                                <PercentButtons>
+                                    <PercentButton onClick={() => setPercentAmount(25)}>25%</PercentButton>
+                                    <PercentButton onClick={() => setPercentAmount(50)}>50%</PercentButton>
+                                    <PercentButton onClick={() => setPercentAmount(100)}>MAX</PercentButton>
+                                </PercentButtons>
+                            </TokenBoxHeader>
+                            <TokenInputRow>
+                                <div style={{ flex: 1 }}>
+                                    <TokenInput
                                 type="number"
-                                value={fromAmount}
-                                onChange={(e) => handleFromAmountChange(e.target.value)}
                                 placeholder="0.00"
-                                style={{
-                                    background: 'transparent',
-                                    border: 'none',
-                                    color: '#ffffff',
-                                    fontSize: '28px',
-                                    fontWeight: '700',
-                                    textAlign: 'right',
-                                    width: '100%',
-                                    outline: 'none'
-                                }}
-                            />
-                            <USDValue>
-                                ~${(parseFloat(fromAmount || '0') * getRealPrice(fromToken.symbol)).toFixed(2)} USD
-                                {pricesLoading && <span style={{ color: '#1FC7D4', fontSize: '10px', marginLeft: '4px' }}>🔄</span>}
-                            </USDValue>
-                        </AmountInfo>
-                    </TokenRow>
+                                        value={fromAmount}
+                                        onChange={(e) => setFromAmount(e.target.value)}
+                                    />
+                                    <USDValue>~${fromUSDValue} USD</USDValue>
+                                </div>
+                                <TokenSelectButton onClick={() => {
+                                    setSelectingToken('from');
+                                    setShowTokenModal(true);
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <img src={fromToken.logo} alt={fromToken.symbol} onError={(e) => {
+                                            e.currentTarget.src = 'https://via.placeholder.com/24/7645D9/FFFFFF?text=' + fromToken.symbol.charAt(0);
+                                        }} />
+                                        <div>
+                                            <div>{fromToken.symbol}</div>
+                                            <div style={{ fontSize: '10px', color: '#B8ADD2' }}>BNB Chain</div>
+                                        </div>
+                                    </div>
+                                    <span>▼</span>
+                                </TokenSelectButton>
+                            </TokenInputRow>
                 </TokenBox>
 
-                {/* Arrow */}
                 <ArrowContainer>
-                    <ArrowButton onClick={() => {
-                        // Swap tokens logic
-                        const tempFrom = fromToken
-                        const tempFromAmount = fromAmount
-                        const tempToAmount = toAmount
-                        
-                        setFromToken(toToken)
-                        setToToken(tempFrom)
-                        setFromAmount(tempToAmount)
-                        setToAmount(tempFromAmount)
-                    }}>
-                        ↓
-                    </ArrowButton>
+                            <ArrowButton onClick={handleSwitch}>⇅</ArrowButton>
                 </ArrowContainer>
 
-                {/* To Section */}
-                <HeaderRow>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Label>To:</Label>
-                        <WalletAddress>
-                            <WalletIcon />
-                            {account.slice(0, 6)}...{account.slice(-4)}
-                        </WalletAddress>
-                    </div>
-                    <div style={{ color: '#6e6e82', fontSize: '14px' }}>⚙️</div>
-                </HeaderRow>
-
                 <TokenBox>
-                    <TokenRow>
-                        <TokenInfo onClick={() => {
-                            setSelectingToken('to')
-                            setShowTokenModal(true)
-                        }}>
-                            <TokenLogoImg 
-                                src={toToken.logo} 
-                                alt={toToken.symbol}
-                                onError={(e) => {
-                                    e.currentTarget.src = `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/info/logo.png`
-                                }}
-                            />
-                            <TokenDetails>
-                                <TokenSymbol>
-                                    {toToken.symbol}
-                                    <span style={{ color: '#6e6e82' }}>▼</span>
-                                </TokenSymbol>
-                                <TokenChain>BNB Chain</TokenChain>
-                            </TokenDetails>
-                        </TokenInfo>
-                        <AmountInfo>
-                            <Amount>{toAmount || '0.00'}</Amount>
-                            <USDValue>
-                                ~${(parseFloat(toAmount || '0') * getRealPrice(toToken.symbol)).toFixed(2)} USD
-                                {pricesLoading && <span style={{ color: '#1FC7D4', fontSize: '10px', marginLeft: '4px' }}>🔄</span>}
-                            </USDValue>
-                        </AmountInfo>
-                    </TokenRow>
+                            <TokenBoxHeader>
+                                <Label>To: 🟠 {account.slice(0, 6)}...{account.slice(-4)}</Label>
+                                <span style={{ fontSize: '12px', color: '#B8ADD2' }}>⚙️</span>
+                            </TokenBoxHeader>
+                            <TokenInputRow>
+                                <div style={{ flex: 1 }}>
+                                    <TokenInput
+                                        type="number"
+                                        placeholder="0.00"
+                                        value={toAmount}
+                                        disabled
+                                    />
+                                    <USDValue>~${toUSDValue} USD</USDValue>
+                                </div>
+                                <TokenSelectButton onClick={() => {
+                                    setSelectingToken('to');
+                                    setShowTokenModal(true);
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <img src={toToken.logo} alt={toToken.symbol} onError={(e) => {
+                                            e.currentTarget.src = 'https://via.placeholder.com/24/7645D9/FFFFFF?text=' + toToken.symbol.charAt(0);
+                                        }} />
+                                        <div>
+                                            <div>{toToken.symbol}</div>
+                                            <div style={{ fontSize: '10px', color: '#B8ADD2' }}>BNB Chain</div>
+                                        </div>
+                                    </div>
+                                    <span>▼</span>
+                                </TokenSelectButton>
+                            </TokenInputRow>
                 </TokenBox>
 
-                {/* Slippage */}
-                <SlippageRow>
+                        <SettingsRow>
                     <Label>Slippage Tolerance</Label>
                     <SlippageValue onClick={() => setShowSlippageModal(true)}>
                         Auto: {slippage}% ✏️
                     </SlippageValue>
-                </SlippageRow>
+                        </SettingsRow>
 
-                {/* Swap Button */}
-                <SwapButton onClick={handleSwap} disabled={loading}>
+                        <SwapButton onClick={executeSwap} disabled={!fromAmount || !toAmount || loading}>
                     {loading ? 'Swapping...' : 'Swap'}
                 </SwapButton>
 
-                {/* Conversion Rate */}
                 {fromAmount && toAmount && (
-                <ConversionRow>
-                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                        <RefreshIcon />
-                            1 {fromToken.symbol} ↔ {(parseFloat(toAmount) / parseFloat(fromAmount)).toFixed(6)} {toToken.symbol}
-                    </div>
-                    <div style={{ color: '#6e6e82' }}>
-                        Fee 0.00000998 BNB ▼
-                    </div>
-                </ConversionRow>
-                )}
-
-                {/* MEV Protect */}
-                <MEVRow>
-                    <MEVLabel onClick={() => setMevProtect(!mevProtect)}>
-                        🛡️ Enable MEV Protect
-                    </MEVLabel>
-                    <ToggleSwitch 
-                        active={mevProtect} 
-                        onClick={() => setMevProtect(!mevProtect)}
-                    />
-                </MEVRow>
-            </SwapCard>
-
-            {/* Token Selection Modal */}
-            <TokenModal show={showTokenModal}>
-                <TokenModalContent>
-                    <CloseButton onClick={() => setShowTokenModal(false)}>×</CloseButton>
-                    <h3 style={{ color: '#ffffff', marginBottom: '16px' }}>
-                        Select {selectingToken === 'from' ? 'From' : 'To'} Token
-                        {tokensLoading && <span style={{ color: '#1FC7D4', fontSize: '12px', marginLeft: '8px' }}>🔄 Loading...</span>}
-                    </h3>
-                    <TokenSearch
-                        placeholder="Search name or paste address"
-                        value={searchTerm}
-                        onChange={(e) => {
-                            setSearchTerm(e.target.value)
-                            if (e.target.value.length === 42 && e.target.value.startsWith('0x')) {
-                                setIsAddingCustomToken(true)
-                                setCustomTokenAddress(e.target.value)
-                            } else {
-                                setIsAddingCustomToken(false)
-                            }
-                        }}
-                    />
-                    
-                    {isAddingCustomToken && (
-                        <div style={{ 
-                            background: '#353444', 
-                            borderRadius: '12px', 
-                            padding: '12px', 
-                            marginBottom: '16px',
-                            border: '1px solid #1FC7D4'
-                        }}>
-                            <div style={{ color: '#1FC7D4', fontSize: '14px', marginBottom: '8px' }}>
-                                Add Custom Token
-                            </div>
-                            <div style={{ color: '#b8add2', fontSize: '12px', marginBottom: '8px' }}>
-                                Contract: {customTokenAddress}
-                            </div>
-                            <button
-                                onClick={addCustomToken}
-                                disabled={customTokenLoading}
-                                style={{
-                                    background: '#1FC7D4',
-                                    color: '#ffffff',
-                                    border: 'none',
-                                    borderRadius: '8px',
-                                    padding: '8px 16px',
-                                    fontSize: '12px',
-                                    cursor: customTokenLoading ? 'not-allowed' : 'pointer',
-                                    opacity: customTokenLoading ? 0.5 : 1
-                                }}
-                            >
-                                {customTokenLoading ? 'Adding...' : 'Add Token'}
-                            </button>
-                        </div>
-                    )}
-                    
-                    <TokenList>
-                        {tokensLoading ? (
-                            <div style={{ 
-                                textAlign: 'center', 
-                                color: '#1FC7D4', 
-                                padding: '20px',
-                                fontSize: '14px'
-                            }}>
-                                🔄 Loading PancakeSwap tokens...
-                            </div>
-                        ) : (
                             <>
-                                <div style={{ 
-                                    color: '#6e6e82', 
-                                    fontSize: '12px', 
-                                    marginBottom: '10px',
-                                    textAlign: 'center'
-                                }}>
-                                    {filteredTokens.length} tokens available • 🥞 PancakeSwap
-                                </div>
-                        {filteredTokens.map((token, index) => (
-                                    <TokenItem key={`${token.address}-${index}`} onClick={() => handleTokenSelect(token)}>
-                                <TokenLogoImg 
-                                    src={token.logo} 
-                                    alt={token.symbol}
-                                    onError={(e) => {
-                                        e.currentTarget.src = `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/info/logo.png`
-                                    }}
-                                />
-                                <TokenInfoModal>
-                                    <TokenSymbolModal>{token.symbol}</TokenSymbolModal>
-                                    <TokenNameModal>{token.name}</TokenNameModal>
-                                            <TokenPriceModal>
-                                                ${getRealPrice(token.symbol).toFixed(4)} 
-                                                {tokenPrices[token.symbol]?.change24h ? 
-                                                    (tokenPrices[token.symbol].change24h > 0 ? ' ↗' : ' ↘') : ''}
-                                                <span style={{ color: '#1FC7D4', fontSize: '10px', marginLeft: '4px' }}>
-                                                    🥞
-                                                </span>
-                                            </TokenPriceModal>
-                                </TokenInfoModal>
-                            </TokenItem>
-                        ))}
+                                <PriceInfo>
+                                    <PriceLeft>
+                                        🔄 1 {fromToken.symbol} ↔ {(parseFloat(toAmount) / parseFloat(fromAmount)).toFixed(6)} {toToken.symbol}
+                                    </PriceLeft>
+                                    <PriceRight>Via PancakeSwap</PriceRight>
+                                </PriceInfo>
+                                <FeeInfo>
+                                    <span>💰 Platform Fee: {PLATFORM_FEE} BNB (~${feeUSDValue} USD)</span>
+                                    <span style={{ fontSize: '10px' }}>Per swap</span>
+                                </FeeInfo>
                             </>
                         )}
-                    </TokenList>
-                </TokenModalContent>
-            </TokenModal>
 
-            {/* Slippage Setting Modal */}
-            {showSlippageModal && (
-                <SlippageModalOverlay onClick={() => setShowSlippageModal(false)}>
-                    <SlippageModalContent onClick={e => e.stopPropagation()}>
-                        <SlippageModalHeader>
-                            <SlippageModalTitle>Slippage Setting</SlippageModalTitle>
-                            <SlippageCloseButton onClick={() => setShowSlippageModal(false)}>
-                                ×
-                            </SlippageCloseButton>
-                        </SlippageModalHeader>
+                        <MEVProtect onClick={() => setMevProtect(!mevProtect)}>
+                            <input
+                                type="checkbox"
+                                checked={mevProtect}
+                                onChange={(e) => setMevProtect(e.target.checked)}
+                            />
+                            <label>🛡️ Enable MEV Protect</label>
+                        </MEVProtect>
+
+                        {error && <ErrorText>{error}</ErrorText>}
+                        {success && <SuccessText>{success}</SuccessText>}
+                    </>
+                )}
+            </SwapCard>
+
+            <Modal show={showTokenModal} onClick={() => setShowTokenModal(false)}>
+                <ModalContent onClick={(e) => e.stopPropagation()}>
+                    <ModalHeader>
+                        <ModalTitle>Select a Token</ModalTitle>
+                        <CloseButton onClick={() => setShowTokenModal(false)}>×</CloseButton>
+                    </ModalHeader>
+                    {tokenList.map((token) => (
+                        <TokenListItem key={token.address} onClick={() => handleTokenSelect(token)}>
+                            <img src={token.logo} alt={token.symbol} onError={(e) => {
+                                e.currentTarget.src = 'https://via.placeholder.com/32/7645D9/FFFFFF?text=' + token.symbol.charAt(0);
+                            }} />
+                            <TokenInfo>
+                                <TokenSymbol>{token.symbol}</TokenSymbol>
+                                <TokenName>{token.name}</TokenName>
+                            </TokenInfo>
+                            <TokenBalance>
+                                {token.address === fromToken.address ? parseFloat(fromBalance).toFixed(4) :
+                                    token.address === toToken.address ? parseFloat(toBalance).toFixed(4) : '0.0000'}
+                            </TokenBalance>
+                        </TokenListItem>
+                    ))}
+                </ModalContent>
+            </Modal>
+
+            <Modal show={showSlippageModal} onClick={() => setShowSlippageModal(false)}>
+                <ModalContent onClick={(e) => e.stopPropagation()}>
+                    <ModalHeader>
+                        <ModalTitle>Settings</ModalTitle>
+                        <CloseButton onClick={() => setShowSlippageModal(false)}>×</CloseButton>
+                    </ModalHeader>
+                    <Label style={{ marginBottom: '16px', display: 'block' }}>Slippage Tolerance</Label>
                         <SlippageOptions>
-                            <SlippageOptionButton
-                                $active={slippage === 2.0}
+                        {[0.5, 1, 2, 5].map((value) => (
+                            <SlippageOption
+                                key={value}
+                                active={slippage === value}
                                 onClick={() => {
-                                    setSlippage(2.0)
-                                    setCustomSlippageInput('2.0')
-                                    setShowSlippageModal(false)
+                                    setSlippage(value);
+                                    setShowSlippageModal(false);
                                 }}
                             >
-                                Auto
-                            </SlippageOptionButton>
-                            {['1.0', '2.0', '5.0'].map(option => (
-                                <SlippageOptionButton
-                                    key={option}
-                                    $active={slippage === parseFloat(option)}
-                                    onClick={() => {
-                                        setSlippage(parseFloat(option))
-                                        setCustomSlippageInput(option)
-                                        setShowSlippageModal(false)
-                                    }}
-                                >
-                                    {option}%
-                                </SlippageOptionButton>
+                                {value}%
+                            </SlippageOption>
                             ))}
                         </SlippageOptions>
-                        <CustomSlippageInputContainer>
-                            <CustomSlippageInput
-                                type="number"
-                                step="0.01"
-                                min="0.01"
-                                placeholder="Custom slippage"
-                                value={customSlippageInput}
-                                onChange={(e) => {
-                                    const value = e.target.value
-                                    setCustomSlippageInput(value)
-                                    if (value && !isNaN(parseFloat(value))) {
-                                        setSlippage(parseFloat(value))
-                                    }
-                                }}
-                            />
-                            <PercentageLabel>%</PercentageLabel>
-                        </CustomSlippageInputContainer>
-                    </SlippageModalContent>
-                </SlippageModalOverlay>
-            )}
-        </SwapContainer>
-    )
+                </ModalContent>
+            </Modal>
+        </Container>
+    );
 }
