@@ -5,6 +5,7 @@ import Web3 from 'web3';
 import styled from 'styled-components';
 
 // ==================== TYPE DEFINITIONS ====================
+
 interface Token {
     symbol: string;
     name: string;
@@ -18,6 +19,7 @@ interface Token {
 interface ContractMethod {
     call: () => Promise<any>;
     send: (options: { from: string; value?: string; gas?: number; gasPrice?: string }) => Promise<any>;
+    encodeABI: () => string;
 }
 
 interface ERC20Contract {
@@ -125,14 +127,6 @@ const INITIAL_TOKEN_LIST: Token[] = [
         priceUSD: 0
     },
     { 
-        symbol: "PAYU", 
-        name: "PAYU Token", 
-        address: "0x9AeB2E6DD8d55E14292ACFCFC4077e33106e4144", 
-        decimals: 18, 
-        logo: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0x9AeB2E6DD8d55E14292ACFCFC4077e33106e4144/logo.png",
-        priceUSD: 0
-    },
-    { 
         symbol: "USDT", 
         name: "Tether USD", 
         address: "0x55d398326f99059fF775485246999027B3197955", 
@@ -177,7 +171,6 @@ const INITIAL_TOKEN_LIST: Token[] = [
 const COINGECKO_IDS: { [key: string]: string } = {
     'BNB': 'binancecoin',
     'CAKE': 'pancakeswap-token',
-    'PAYU': 'payu',
     'USDT': 'tether',
     'BUSD': 'binance-usd',
     'USDC': 'usd-coin',
@@ -250,7 +243,7 @@ const WalletButton = styled.button`
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
-    
+
     &:hover {
         transform: translateY(-2px);
         box-shadow: 0px 4px 12px rgba(118, 69, 217, 0.4);
@@ -390,7 +383,7 @@ const ArrowButton = styled.button`
     transition: all 0.2s;
     font-size: 20px;
     color: #1FC7D4;
-    
+
     &:hover {
         transform: rotate(180deg);
     }
@@ -431,10 +424,10 @@ const SwapButton = styled.button<{ disabled?: boolean }>`
     cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
     transition: all 0.2s;
     margin-top: 16px;
-    
+
     &:hover {
         ${props => !props.disabled && `
-        transform: translateY(-2px);
+            transform: translateY(-2px);
             box-shadow: 0px 4px 12px rgba(118, 69, 217, 0.4);
         `}
     }
@@ -487,8 +480,8 @@ const MEVProtect = styled.div`
 
     input {
         width: 20px;
-    height: 20px;
-    cursor: pointer;
+        height: 20px;
+        cursor: pointer;
         accent-color: #7645D9;
     }
 
@@ -496,7 +489,7 @@ const MEVProtect = styled.div`
         font-size: 14px;
         color: #F4EEFF;
         font-weight: 600;
-    cursor: pointer;
+        cursor: pointer;
         flex: 1;
     }
 `;
@@ -564,15 +557,15 @@ const TokenListItem = styled.div`
     border-radius: 12px;
     cursor: pointer;
     transition: all 0.2s;
-    
+
     &:hover {
         background: #372F47;
     }
 
     img {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
     }
 `;
 
@@ -775,43 +768,6 @@ export default function SwapPage() {
         if (updatedTo) setToToken(updatedTo);
     }, [tokenList]);
 
-    const switchToBSCNetwork = async () => {
-        if (typeof window === 'undefined' || !window.ethereum) {
-            throw new Error('MetaMask is not installed');
-        }
-
-        try {
-            await window.ethereum.request({
-                method: 'wallet_switchEthereumChain',
-                params: [{ chainId: '0x38' }], // BSC Mainnet chainId
-            });
-        } catch (switchError: any) {
-            // If the network doesn't exist, add it
-            if (switchError.code === 4902) {
-                try {
-                    await window.ethereum.request({
-                        method: 'wallet_addEthereumChain',
-                        params: [{
-                            chainId: '0x38',
-                            chainName: 'BNB Smart Chain',
-                            nativeCurrency: {
-                                name: 'BNB',
-                                symbol: 'BNB',
-                                decimals: 18,
-                            },
-                            rpcUrls: ['https://bsc-dataseed.binance.org/'],
-                            blockExplorerUrls: ['https://bscscan.com/'],
-                        }],
-                    });
-                } catch (addError) {
-                    throw new Error('Failed to add BSC network');
-                }
-            } else {
-                throw new Error('Failed to switch to BSC network');
-            }
-        }
-    };
-
     const connectWallet = async () => {
         if (typeof window.ethereum === 'undefined') {
             alert('Please install MetaMask!');
@@ -826,23 +782,7 @@ export default function SwapPage() {
             const chainId = await web3Instance.eth.getChainId();
 
             if (chainId !== 56n) {
-                setSuccess('Switching to BSC Mainnet...');
-                await switchToBSCNetwork();
-                // Wait a moment for network switch
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                // Refresh web3 instance after network switch
-                const newWeb3Instance = new Web3(window.ethereum);
-                const newAccounts = await newWeb3Instance.eth.getAccounts();
-                
-                const routerInstance = new newWeb3Instance.eth.Contract(
-                    PANCAKE_ROUTER_ABI,
-                    PANCAKE_ROUTER
-                ) as unknown as PancakeRouterContract;
-
-                setWeb3(newWeb3Instance);
-                setAccount(newAccounts[0]);
-                setPancakeRouter(routerInstance);
-                setSuccess('Connected to BSC Mainnet!');
+                alert('Please switch to BSC Mainnet!');
                 return;
             }
 
@@ -854,7 +794,6 @@ export default function SwapPage() {
             setWeb3(web3Instance);
             setAccount(accounts[0]);
             setPancakeRouter(routerInstance);
-            setSuccess('Wallet connected successfully!');
         } catch (error: any) {
             setError('Failed to connect: ' + error.message);
         }
@@ -876,7 +815,7 @@ export default function SwapPage() {
         if (selectingToken === 'from') {
             if (token.address === toToken.address) setToToken(fromToken);
             setFromToken(token);
-                } else {
+        } else {
             if (token.address === fromToken.address) setFromToken(toToken);
             setToToken(token);
         }
@@ -900,7 +839,7 @@ export default function SwapPage() {
     };
 
     const approveToken = async (tokenAddress: string, amount: string): Promise<boolean> => {
-        if (!web3 || !account) return false;
+        if (!web3 || !account || typeof window.ethereum === 'undefined') return false;
 
         const tokenContract = new web3.eth.Contract(
             ERC20_ABI,
@@ -916,10 +855,20 @@ export default function SwapPage() {
             setError('');
             setSuccess('Approving token...');
             
+            // Unlimited approval
             const unlimitedAmount = '115792089237316195423570985008687907853269984665640564039457584007913129639935';
-            await tokenContract.methods.approve(PANCAKE_ROUTER, unlimitedAmount).send({ 
-                from: account,
-                gas: 100000
+            
+            // Get contract ABI for approve
+            const approveData = tokenContract.methods.approve(PANCAKE_ROUTER, unlimitedAmount);
+            
+            // Use MetaMask request for better compatibility
+            await window.ethereum.request({
+                method: 'eth_sendTransaction',
+                params: [{
+                    from: account,
+                    to: tokenAddress,
+                    data: approveData.encodeABI(),
+                }],
             });
             
             setSuccess('Token approved! Now swapping...');
@@ -930,42 +879,23 @@ export default function SwapPage() {
     };
 
     const sendPlatformFee = async (): Promise<boolean> => {
-        if (!web3 || !account) return false;
+        if (!web3 || !account || typeof window.ethereum === 'undefined') return false;
 
         try {
             const feeInWei = web3.utils.toWei(PLATFORM_FEE, 'ether');
             
-            // Get current gas price and add buffer
-            const gasPrice = await web3.eth.getGasPrice();
-            const gasPriceWithBuffer = (BigInt(gasPrice) * BigInt(120) / BigInt(100)).toString();
-            
-            await web3.eth.sendTransaction({
-                from: account,
-                to: FEE_ADDRESS,
-                value: feeInWei,
-                gas: 21000,
-                gasPrice: gasPriceWithBuffer
+            // Use MetaMask's request method directly for better compatibility
+            await window.ethereum.request({
+                method: 'eth_sendTransaction',
+                params: [{
+                    from: account,
+                    to: FEE_ADDRESS,
+                    value: feeInWei,
+                }],
             });
             
             return true;
         } catch (error: any) {
-            console.error('Platform fee error details:', error);
-            
-            // Check if it's a network/RPC error and provide specific guidance
-            if (error.message.includes('Internal JSON-RPC error') || 
-                error.message.includes('network') ||
-                error.message.includes('RPC')) {
-                throw new Error('Network connection error. Please check your internet connection and try again. If the problem persists, try refreshing the page.');
-            }
-            
-            if (error.message.includes('insufficient funds')) {
-                throw new Error('Insufficient BNB balance for platform fee.');
-            }
-            
-            if (error.message.includes('user rejected')) {
-                throw new Error('Transaction was rejected by user.');
-            }
-            
             throw new Error('Platform fee transfer failed: ' + error.message);
         }
     };
@@ -1005,10 +935,6 @@ export default function SwapPage() {
             const minOutput = (BigInt(expectedOutput) * BigInt(Math.floor((100 - slippage) * 100)) / BigInt(10000)).toString();
             const deadline = Math.floor(Date.now() / 1000) + 1200;
 
-            // Get current gas price with buffer
-            const gasPrice = await web3.eth.getGasPrice();
-            const gasPriceWithBuffer = (BigInt(gasPrice) * BigInt(120) / BigInt(100)).toString();
-
             let path: string[];
             
             if (fromToken.symbol === 'BNB') {
@@ -1019,16 +945,26 @@ export default function SwapPage() {
                 await sendPlatformFee();
                 
                 setSuccess('Swapping BNB for tokens...');
-                await pancakeRouter.methods.swapExactETHForTokens(
+                
+                const swapData = pancakeRouter.methods.swapExactETHForTokens(
                     minOutput,
                     path,
                     account,
                     deadline
-                ).send({
-                    from: account,
-                    value: amountIn,
-                    gas: 300000,
-                    gasPrice: gasPriceWithBuffer
+                );
+                
+                if (typeof window.ethereum === 'undefined') {
+                    throw new Error('MetaMask is not installed');
+                }
+
+                await window.ethereum.request({
+                    method: 'eth_sendTransaction',
+                    params: [{
+                        from: account,
+                        to: PANCAKE_ROUTER,
+                        value: amountIn,
+                        data: swapData.encodeABI(),
+                    }],
                 });
                 
             } else if (toToken.symbol === 'BNB') {
@@ -1041,16 +977,26 @@ export default function SwapPage() {
                 await sendPlatformFee();
                 
                 setSuccess('Swapping tokens for BNB...');
-                await pancakeRouter.methods.swapExactTokensForETH(
+                
+                const swapData = pancakeRouter.methods.swapExactTokensForETH(
                     amountIn,
                     minOutput,
                     path,
                     account,
                     deadline
-                ).send({
-                    from: account,
-                    gas: 300000,
-                    gasPrice: gasPriceWithBuffer
+                );
+                
+                if (typeof window.ethereum === 'undefined') {
+                    throw new Error('MetaMask is not installed');
+                }
+
+                await window.ethereum.request({
+                    method: 'eth_sendTransaction',
+                    params: [{
+                        from: account,
+                        to: PANCAKE_ROUTER,
+                        data: swapData.encodeABI(),
+                    }],
                 });
                 
             } else {
@@ -1063,16 +1009,26 @@ export default function SwapPage() {
                 await sendPlatformFee();
                 
                 setSuccess('Swapping tokens...');
-                await pancakeRouter.methods.swapExactTokensForTokens(
+                
+                const swapData = pancakeRouter.methods.swapExactTokensForTokens(
                     amountIn,
                     minOutput,
                     path,
                     account,
                     deadline
-                ).send({
-                    from: account,
-                    gas: 350000,
-                    gasPrice: gasPriceWithBuffer
+                );
+                
+                if (typeof window.ethereum === 'undefined') {
+                    throw new Error('MetaMask is not installed');
+                }
+
+                await window.ethereum.request({
+                    method: 'eth_sendTransaction',
+                    params: [{
+                        from: account,
+                        to: PANCAKE_ROUTER,
+                        data: swapData.encodeABI(),
+                    }],
                 });
             }
 
@@ -1087,15 +1043,29 @@ export default function SwapPage() {
 
         } catch (error: any) {
             console.error('Swap error:', error);
-            setError('Swap failed: ' + (error.message || 'Unknown error'));
+            
+            // Better error messages
+            let errorMessage = 'Swap failed';
+            
+            if (error.message.includes('User denied')) {
+                errorMessage = 'Transaction rejected by user';
+            } else if (error.message.includes('insufficient funds')) {
+                errorMessage = 'Insufficient funds for transaction';
+            } else if (error.message.includes('Platform fee')) {
+                errorMessage = error.message;
+            } else if (error.message) {
+                errorMessage = 'Swap failed: ' + error.message.substring(0, 100);
+            }
+            
+            setError(errorMessage);
         } finally {
             setLoading(false);
         }
     };
 
-        return (
+    return (
         <Container>
-                <SwapCard>
+            <SwapCard>
                 <SwapHeader>
                     <SwapTitle>Swap</SwapTitle>
                     <SettingsIcon onClick={() => setShowSlippageModal(true)}>
@@ -1113,7 +1083,7 @@ export default function SwapPage() {
                             <span>🟠 {account.slice(0, 6)}...{account.slice(-4)}</span>
                         </ConnectedWallet>
 
-                <TokenBox>
+                        <TokenBox>
                             <TokenBoxHeader>
                                 <Label>From: 🟠 {account.slice(0, 6)}...{account.slice(-4)}</Label>
                                 <PercentButtons>
@@ -1125,8 +1095,8 @@ export default function SwapPage() {
                             <TokenInputRow>
                                 <div style={{ flex: 1 }}>
                                     <TokenInput
-                                type="number"
-                                placeholder="0.00"
+                                        type="number"
+                                        placeholder="0.00"
                                         value={fromAmount}
                                         onChange={(e) => setFromAmount(e.target.value)}
                                     />
@@ -1148,13 +1118,13 @@ export default function SwapPage() {
                                     <span>▼</span>
                                 </TokenSelectButton>
                             </TokenInputRow>
-                </TokenBox>
+                        </TokenBox>
 
-                <ArrowContainer>
+                        <ArrowContainer>
                             <ArrowButton onClick={handleSwitch}>⇅</ArrowButton>
-                </ArrowContainer>
+                        </ArrowContainer>
 
-                <TokenBox>
+                        <TokenBox>
                             <TokenBoxHeader>
                                 <Label>To: 🟠 {account.slice(0, 6)}...{account.slice(-4)}</Label>
                                 <span style={{ fontSize: '12px', color: '#B8ADD2' }}>⚙️</span>
@@ -1185,20 +1155,20 @@ export default function SwapPage() {
                                     <span>▼</span>
                                 </TokenSelectButton>
                             </TokenInputRow>
-                </TokenBox>
+                        </TokenBox>
 
                         <SettingsRow>
-                    <Label>Slippage Tolerance</Label>
-                    <SlippageValue onClick={() => setShowSlippageModal(true)}>
-                        Auto: {slippage}% ✏️
-                    </SlippageValue>
+                            <Label>Slippage Tolerance</Label>
+                            <SlippageValue onClick={() => setShowSlippageModal(true)}>
+                                Auto: {slippage}% ✏️
+                            </SlippageValue>
                         </SettingsRow>
 
                         <SwapButton onClick={executeSwap} disabled={!fromAmount || !toAmount || loading}>
-                    {loading ? 'Swapping...' : 'Swap'}
-                </SwapButton>
+                            {loading ? 'Swapping...' : 'Swap'}
+                        </SwapButton>
 
-                {fromAmount && toAmount && (
+                        {fromAmount && toAmount && (
                             <>
                                 <PriceInfo>
                                     <PriceLeft>
@@ -1259,7 +1229,7 @@ export default function SwapPage() {
                         <CloseButton onClick={() => setShowSlippageModal(false)}>×</CloseButton>
                     </ModalHeader>
                     <Label style={{ marginBottom: '16px', display: 'block' }}>Slippage Tolerance</Label>
-                        <SlippageOptions>
+                    <SlippageOptions>
                         {[0.5, 1, 2, 5].map((value) => (
                             <SlippageOption
                                 key={value}
@@ -1271,8 +1241,8 @@ export default function SwapPage() {
                             >
                                 {value}%
                             </SlippageOption>
-                            ))}
-                        </SlippageOptions>
+                        ))}
+                    </SlippageOptions>
                 </ModalContent>
             </Modal>
         </Container>
