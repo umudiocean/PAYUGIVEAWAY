@@ -550,21 +550,26 @@ export default function SwapPage() {
     // PancakeSwap API'den gerçek fiyatları al
     const fetchRealTimePrices = useCallback(async () => {
         try {
-            // PancakeSwap API'den BNB fiyatını al
-            const bnbResponse = await fetch('https://api.pancakeswap.info/api/v2/tokens/0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c');
+            // CoinGecko API'den BNB fiyatını al (daha güvenilir)
+            const bnbResponse = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=binancecoin&vs_currencies=usd');
             const bnbData = await bnbResponse.json();
-            const bnbPrice = parseFloat(bnbData.data.price);
+            const bnbPrice = bnbData.binancecoin.usd;
             
             // CAKE fiyatını al
-            const cakeResponse = await fetch('https://api.pancakeswap.info/api/v2/tokens/0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82');
+            const cakeResponse = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=pancakeswap-token&vs_currencies=usd');
             const cakeData = await cakeResponse.json();
-            const cakePrice = parseFloat(cakeData.data.price);
+            const cakePrice = cakeData['pancakeswap-token'].usd;
             
-            // PAYU fiyatını hesapla (BNB cinsinden)
-            const payuResponse = await fetch('https://api.pancakeswap.info/api/v2/tokens/0x9AeB2E6DD8d55E14292ACFCFC4077e33106e4144');
-            const payuData = await payuResponse.json();
-            const payuPriceInBNB = parseFloat(payuData.data.price);
-            const payuPriceInUSD = payuPriceInBNB * bnbPrice;
+            // PAYU için PancakeSwap API'yi kullan (BSC'deki token)
+            let payuPriceInUSD = 0.0001; // fallback
+            try {
+                const payuResponse = await fetch('https://api.pancakeswap.info/api/v2/tokens/0x9AeB2E6DD8d55E14292ACFCFC4077e33106e4144');
+                const payuData = await payuResponse.json();
+                const payuPriceInBNB = parseFloat(payuData.data.price);
+                payuPriceInUSD = payuPriceInBNB * bnbPrice;
+            } catch (payuError) {
+                console.log('PAYU price fallback used');
+            }
             
             setRealTimePrices({
                 'BNB': bnbPrice,
@@ -574,6 +579,12 @@ export default function SwapPage() {
                 'USDC': 1,
                 'BTCB': 65000,
                 'ETH': 3500,
+                'PAYU': payuPriceInUSD
+            });
+            
+            console.log('Updated prices:', {
+                'BNB': bnbPrice,
+                'CAKE': cakePrice,
                 'PAYU': payuPriceInUSD
             });
         } catch (error) {
