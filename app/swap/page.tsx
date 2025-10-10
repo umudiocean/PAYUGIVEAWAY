@@ -290,6 +290,108 @@ const ArrowButton = styled.button`
     }
 `;
 
+const ModalOverlay = styled.div`
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+`;
+
+const ModalContent = styled.div`
+    background: #27262C;
+    border-radius: 24px;
+    width: 90%;
+    max-width: 420px;
+    max-height: 80vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+`;
+
+const ModalHeader = styled.div`
+    padding: 20px 24px;
+    border-bottom: 1px solid #383241;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+`;
+
+const ModalTitle = styled.h3`
+    font-size: 18px;
+    font-weight: 700;
+    color: #F4EEFF;
+    margin: 0;
+    font-family: 'Kanit', sans-serif;
+`;
+
+const CloseButton = styled.button`
+    background: none;
+    border: none;
+    color: #B8ADD2;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    &:hover {
+        color: #F4EEFF;
+    }
+`;
+
+const TokenList = styled.div`
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+`;
+
+const TokenItem = styled.button`
+    width: 100%;
+    padding: 12px 16px;
+    background: transparent;
+    border: none;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: 'Kanit', sans-serif;
+    &:hover {
+        background: #372F47;
+    }
+    img {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+    }
+`;
+
+const TokenInfo = styled.div`
+    flex: 1;
+    text-align: left;
+`;
+
+const TokenSymbol = styled.div`
+    color: #F4EEFF;
+    font-size: 16px;
+    font-weight: 600;
+`;
+
+const TokenName = styled.div`
+    color: #B8ADD2;
+    font-size: 12px;
+`;
+
 // ==================== MAIN COMPONENT ====================
 export default function SwapPage() {
     const [web3, setWeb3] = useState<Web3 | null>(null);
@@ -307,6 +409,9 @@ export default function SwapPage() {
     const [mevProtect, setMevProtect] = useState<boolean>(false);
     const [error, setError] = useState<string>('');
     const [success, setSuccess] = useState<string>('');
+    const [showTokenModal, setShowTokenModal] = useState<boolean>(false);
+    const [selectingToken, setSelectingToken] = useState<'from' | 'to'>('from');
+    const [tokenPrices, setTokenPrices] = useState<{[key: string]: number}>({});
 
     // Connect wallet
     const connectWallet = async () => {
@@ -502,6 +607,36 @@ export default function SwapPage() {
         setToAmount('');
     };
 
+    const handleTokenSelect = (token: typeof TOKEN_LIST[0]) => {
+        if (selectingToken === 'from') {
+            if (token.symbol === toToken.symbol) {
+                setToToken(fromToken);
+            }
+            setFromToken(token);
+        } else {
+            if (token.symbol === fromToken.symbol) {
+                setFromToken(toToken);
+            }
+            setToToken(token);
+        }
+        setShowTokenModal(false);
+        setFromAmount('');
+        setToAmount('');
+    };
+
+    const openTokenModal = (type: 'from' | 'to') => {
+        setSelectingToken(type);
+        setShowTokenModal(true);
+    };
+
+    const setPercentageAmount = (percentage: number) => {
+        const balance = parseFloat(fromBalance);
+        if (balance > 0) {
+            const amount = (balance * percentage / 100 * 0.99).toFixed(6);
+            setFromAmount(amount);
+        }
+    };
+
         return (
         <Container>
                 <SwapCard>
@@ -523,20 +658,50 @@ export default function SwapPage() {
                 <TokenBox>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
                                 <span style={{ color: '#B8ADD2', fontSize: '14px', fontFamily: 'Kanit' }}>From</span>
-                                <button
-                                    style={{ 
-                                        background: 'none', 
-                                        border: 'none', 
-                                        color: '#1FC7D4', 
-                                        cursor: 'pointer', 
-                                        fontSize: '14px',
-                                        fontFamily: 'Kanit',
-                                        fontWeight: '600'
-                                    }}
-                                    onClick={() => setFromAmount((parseFloat(fromBalance) * 0.99).toFixed(6))}
-                                >
-                                    MAX
-                                </button>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <button
+                                        style={{ 
+                                            background: 'none', 
+                                            border: 'none', 
+                                            color: '#1FC7D4', 
+                                            cursor: 'pointer', 
+                                            fontSize: '14px',
+                                            fontFamily: 'Kanit',
+                                            fontWeight: '600'
+                                        }}
+                                        onClick={() => setPercentageAmount(25)}
+                                    >
+                                        25%
+                                    </button>
+                                    <button
+                                        style={{ 
+                                            background: 'none', 
+                                            border: 'none', 
+                                            color: '#1FC7D4', 
+                                            cursor: 'pointer', 
+                                            fontSize: '14px',
+                                            fontFamily: 'Kanit',
+                                            fontWeight: '600'
+                                        }}
+                                        onClick={() => setPercentageAmount(50)}
+                                    >
+                                        50%
+                                    </button>
+                                    <button
+                                        style={{ 
+                                            background: 'none', 
+                                            border: 'none', 
+                                            color: '#1FC7D4', 
+                                            cursor: 'pointer', 
+                                            fontSize: '14px',
+                                            fontFamily: 'Kanit',
+                                            fontWeight: '600'
+                                        }}
+                                        onClick={() => setPercentageAmount(100)}
+                                    >
+                                        MAX
+                                    </button>
+                                </div>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                     <TokenInput
@@ -545,11 +710,22 @@ export default function SwapPage() {
                                         value={fromAmount}
                                         onChange={(e) => setFromAmount(e.target.value)}
                                     />
-                                <TokenSelectButton>
+                                <TokenSelectButton onClick={() => openTokenModal('from')}>
                                     <img src={fromToken.logo} alt={fromToken.symbol} />
                                     <span>{fromToken.symbol}</span>
+                                    <span style={{ marginLeft: '4px' }}>▼</span>
                                 </TokenSelectButton>
                             </div>
+                            {fromAmount && parseFloat(fromAmount) > 0 && (
+                                <div style={{ 
+                                    marginTop: '8px', 
+                                    color: '#B8ADD2', 
+                                    fontSize: '12px',
+                                    fontFamily: 'Kanit'
+                                }}>
+                                    ~${(parseFloat(fromAmount) * (fromToken.symbol === 'BNB' ? 600 : fromToken.symbol === 'CAKE' ? 3 : 1)).toFixed(2)} USD
+                                </div>
+                            )}
                 </TokenBox>
 
                         <div style={{ display: 'flex', justifyContent: 'center' }}>
@@ -567,11 +743,22 @@ export default function SwapPage() {
                                         value={toAmount}
                                         disabled
                                     />
-                                <TokenSelectButton>
+                                <TokenSelectButton onClick={() => openTokenModal('to')}>
                                     <img src={toToken.logo} alt={toToken.symbol} />
                                     <span>{toToken.symbol}</span>
+                                    <span style={{ marginLeft: '4px' }}>▼</span>
                                 </TokenSelectButton>
                             </div>
+                            {toAmount && parseFloat(toAmount) > 0 && (
+                                <div style={{ 
+                                    marginTop: '8px', 
+                                    color: '#B8ADD2', 
+                                    fontSize: '12px',
+                                    fontFamily: 'Kanit'
+                                }}>
+                                    ~${(parseFloat(toAmount) * (toToken.symbol === 'BNB' ? 600 : toToken.symbol === 'CAKE' ? 3 : 1)).toFixed(2)} USD
+                                </div>
+                            )}
                 </TokenBox>
 
                         {/* Controls Panel */}
@@ -674,11 +861,6 @@ export default function SwapPage() {
                                         />
                                     </button>
                                 </div>
-
-                                <FeeInfo>
-                                    <span>💰 Platform Fee: {PLATFORM_FEE} BNB</span>
-                                    <span>Per swap</span>
-                                </FeeInfo>
                             </>
                         )}
 
@@ -691,6 +873,29 @@ export default function SwapPage() {
                     </>
                 )}
             </SwapCard>
+
+            {/* Token Selection Modal */}
+            {showTokenModal && (
+                <ModalOverlay onClick={() => setShowTokenModal(false)}>
+                    <ModalContent onClick={(e) => e.stopPropagation()}>
+                        <ModalHeader>
+                            <ModalTitle>Select a Token</ModalTitle>
+                            <CloseButton onClick={() => setShowTokenModal(false)}>×</CloseButton>
+                        </ModalHeader>
+                        <TokenList>
+                            {TOKEN_LIST.map((token) => (
+                                <TokenItem key={token.address} onClick={() => handleTokenSelect(token)}>
+                                    <img src={token.logo} alt={token.symbol} />
+                                    <TokenInfo>
+                                        <TokenSymbol>{token.symbol}</TokenSymbol>
+                                        <TokenName>{token.name}</TokenName>
+                                    </TokenInfo>
+                                </TokenItem>
+                            ))}
+                        </TokenList>
+                    </ModalContent>
+                </ModalOverlay>
+            )}
         </Container>
     );
 }
