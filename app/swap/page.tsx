@@ -568,12 +568,18 @@ export default function SwapPage() {
             const cakePrice = cakeData['pancakeswap-token'].usd;
             
             // PAYU için PancakeSwap API'yi kullan (BSC'deki token)
-            let payuPriceInUSD = 0.0001; // fallback
+            let payuPriceInUSD = 0.000000001; // çok düşük fallback (1 PAYU = $0.000000001)
             try {
                 const payuResponse = await fetch('https://api.pancakeswap.info/api/v2/tokens/0x9AeB2E6DD8d55E14292ACFCFC4077e33106e4144');
                 const payuData = await payuResponse.json();
                 const payuPriceInBNB = parseFloat(payuData.data.price);
                 payuPriceInUSD = payuPriceInBNB * bnbPrice;
+                
+                // PAYU fiyatı çok yüksekse fallback kullan
+                if (payuPriceInUSD > 0.00001) {
+                    console.log('PAYU price too high, using fallback');
+                    payuPriceInUSD = 0.000000001;
+                }
             } catch (payuError) {
                 console.log('PAYU price fallback used');
             }
@@ -605,7 +611,7 @@ export default function SwapPage() {
                 'USDC': 1,
                 'BTCB': 65000,
                 'ETH': 3500,
-                'PAYU': 0.0001
+                'PAYU': 0.000000001
             });
         }
     }, []);
