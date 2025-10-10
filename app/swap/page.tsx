@@ -66,13 +66,16 @@ const ERC20_ABI = [
     {"inputs":[],"name":"decimals","outputs":[{"internalType":"uint8","name":"","type":"uint8"}],"stateMutability":"view","type":"function"}
 ];
 
-// Token list
+// Token list - PAYU coin en üstte
 const TOKEN_LIST = [
-    { symbol: "BNB", name: "BNB", address: WBNB, decimals: 18, logo: "https://tokens.pancakeswap.finance/images/symbol/bnb.png" },
-    { symbol: "CAKE", name: "PancakeSwap", address: "0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82", decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82.png" },
+    { symbol: "PAYU", name: "Platform of meme coins", address: "0x9AeB2E6DD8d55E14292ACFCFC4077e33106e4144", decimals: 18, logo: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0x9AeB2E6DD8d55E14292ACFCFC4077e33106e4144/logo.png" },
+    { symbol: "BNB", name: "Binance Chain Native Token", address: WBNB, decimals: 18, logo: "https://tokens.pancakeswap.finance/images/symbol/bnb.png" },
+    { symbol: "CAKE", name: "PancakeSwap Token", address: "0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82", decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82.png" },
     { symbol: "USDT", name: "Tether USD", address: "0x55d398326f99059fF775485246999027B3197955", decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0x55d398326f99059fF775485246999027B3197955.png" },
     { symbol: "BUSD", name: "Binance USD", address: "0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56", decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56.png" },
     { symbol: "USDC", name: "USD Coin", address: "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d", decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d.png" },
+    { symbol: "BTCB", name: "Bitcoin BEP2", address: "0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c", decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c.png" },
+    { symbol: "ETH", name: "Ethereum Token", address: "0x2170Ed0880ac9A755fd29B2688956BD959F933F8", decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0x2170Ed0880ac9A755fd29B2688956BD959F933F8.png" },
 ];
 
 
@@ -316,8 +319,7 @@ const ModalContent = styled.div`
 `;
 
 const ModalHeader = styled.div`
-    padding: 20px 24px;
-    border-bottom: 1px solid #383241;
+    padding: 20px 24px 16px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -331,11 +333,16 @@ const ModalTitle = styled.h3`
     font-family: 'Kanit', sans-serif;
 `;
 
+const HeaderButtons = styled.div`
+    display: flex;
+    gap: 8px;
+`;
+
 const CloseButton = styled.button`
     background: none;
     border: none;
     color: #B8ADD2;
-    font-size: 24px;
+    font-size: 20px;
     cursor: pointer;
     padding: 0;
     width: 32px;
@@ -348,10 +355,100 @@ const CloseButton = styled.button`
     }
 `;
 
+const SearchInput = styled.input`
+    width: 100%;
+    padding: 12px 16px;
+    background: #1E1D20;
+    border: 2px solid #7645D9;
+    border-radius: 16px;
+    color: #F4EEFF;
+    font-size: 16px;
+    font-family: 'Kanit', sans-serif;
+    outline: none;
+    margin: 0 24px 16px;
+    &::placeholder {
+        color: #B8ADD2;
+    }
+    &:focus {
+        border-color: #1FC7D4;
+    }
+`;
+
+const NetworkSection = styled.div`
+    padding: 0 24px 16px;
+`;
+
+const NetworkLabel = styled.div`
+    color: #F4EEFF;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    font-family: 'Kanit', sans-serif;
+`;
+
+const NetworkChips = styled.div`
+    display: flex;
+    gap: 8px;
+`;
+
+const NetworkChip = styled.div<{ active?: boolean }>`
+    padding: 6px 12px;
+    background: ${props => props.active ? '#7645D9' : 'transparent'};
+    border: 1px solid ${props => props.active ? '#7645D9' : '#383241'};
+    border-radius: 20px;
+    color: ${props => props.active ? '#F4EEFF' : '#B8ADD2'};
+    font-size: 12px;
+    font-weight: 600;
+    font-family: 'Kanit', sans-serif;
+`;
+
+const PopularSection = styled.div`
+    padding: 0 24px 16px;
+`;
+
+const PopularLabel = styled.div`
+    color: #F4EEFF;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    font-family: 'Kanit', sans-serif;
+`;
+
+const PopularChips = styled.div`
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+`;
+
+const PopularChip = styled.button`
+    padding: 6px 12px;
+    background: transparent;
+    border: 1px solid #383241;
+    border-radius: 20px;
+    color: #B8ADD2;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: 'Kanit', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    &:hover {
+        border-color: #7645D9;
+        color: #F4EEFF;
+    }
+    img {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+    }
+`;
+
 const TokenList = styled.div`
     flex: 1;
     overflow-y: auto;
-    padding: 12px;
+    padding: 0 12px 12px;
 `;
 
 const TokenItem = styled.button`
@@ -366,6 +463,7 @@ const TokenItem = styled.button`
     cursor: pointer;
     transition: all 0.2s ease;
     font-family: 'Kanit', sans-serif;
+    position: relative;
     &:hover {
         background: #372F47;
     }
@@ -392,6 +490,36 @@ const TokenName = styled.div`
     font-size: 12px;
 `;
 
+const TokenBalance = styled.div`
+    text-align: right;
+    color: #F4EEFF;
+    font-size: 14px;
+    font-weight: 600;
+`;
+
+const TokenBalanceUSD = styled.div`
+    text-align: right;
+    color: #B8ADD2;
+    font-size: 12px;
+    margin-top: 2px;
+`;
+
+const BSCBadge = styled.div`
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    width: 16px;
+    height: 16px;
+    background: #F3BA2F;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    font-weight: bold;
+    color: #000;
+`;
+
 // ==================== MAIN COMPONENT ====================
 export default function SwapPage() {
     const [web3, setWeb3] = useState<Web3 | null>(null);
@@ -412,6 +540,8 @@ export default function SwapPage() {
     const [showTokenModal, setShowTokenModal] = useState<boolean>(false);
     const [selectingToken, setSelectingToken] = useState<'from' | 'to'>('from');
     const [tokenPrices, setTokenPrices] = useState<{[key: string]: number}>({});
+    const [searchQuery, setSearchQuery] = useState<string>('');
+    const [tokenBalances, setTokenBalances] = useState<{[key: string]: string}>({});
 
     // Connect wallet
     const connectWallet = async () => {
@@ -460,6 +590,33 @@ export default function SwapPage() {
         }
     }, [web3, account, fromToken]);
 
+    // Get all token balances
+    const updateAllTokenBalances = useCallback(async () => {
+        if (!web3 || !account) return;
+
+        const balances: {[key: string]: string} = {};
+        
+        try {
+            for (const token of TOKEN_LIST) {
+                if (token.symbol === 'BNB') {
+                    const balance = await web3.eth.getBalance(account);
+                    balances[token.symbol] = web3.utils.fromWei(balance, 'ether');
+                } else {
+                    try {
+                        const tokenContract = new web3.eth.Contract(ERC20_ABI, token.address);
+                        const balance = await tokenContract.methods.balanceOf(account).call();
+                        balances[token.symbol] = web3.utils.fromWei(String(balance), 'ether');
+                    } catch (error) {
+                        balances[token.symbol] = '0';
+                    }
+                }
+            }
+            setTokenBalances(balances);
+        } catch (error) {
+            console.error('Error updating token balances:', error);
+        }
+    }, [web3, account]);
+
     // Get quote
     const getQuote = useCallback(async () => {
         if (!contract || !fromAmount || !web3) return;
@@ -484,8 +641,11 @@ export default function SwapPage() {
     }, [contract, fromAmount, web3, fromToken, toToken]);
 
     useEffect(() => {
-        if (account) updateBalance();
-    }, [account, fromToken, updateBalance]);
+        if (account) {
+            updateBalance();
+            updateAllTokenBalances();
+        }
+    }, [account, fromToken, updateBalance, updateAllTokenBalances]);
 
     useEffect(() => {
         if (fromAmount && contract) {
@@ -626,6 +786,7 @@ export default function SwapPage() {
 
     const openTokenModal = (type: 'from' | 'to') => {
         setSelectingToken(type);
+        setSearchQuery('');
         setShowTokenModal(true);
     };
 
@@ -687,7 +848,7 @@ export default function SwapPage() {
                                     >
                                         50%
                                     </button>
-                                    <button
+                                <button
                                         style={{ 
                                             background: 'none', 
                                             border: 'none', 
@@ -698,9 +859,9 @@ export default function SwapPage() {
                                             fontWeight: '600'
                                         }}
                                         onClick={() => setPercentageAmount(100)}
-                                    >
-                                        MAX
-                                    </button>
+                                >
+                                    MAX
+                                </button>
                                 </div>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -762,7 +923,7 @@ export default function SwapPage() {
                 </TokenBox>
 
                         {/* Controls Panel */}
-                        {fromAmount && toAmount && (
+                {fromAmount && toAmount && (
                             <>
                                 <div style={{ 
                                     display: 'flex', 
@@ -879,19 +1040,82 @@ export default function SwapPage() {
                 <ModalOverlay onClick={() => setShowTokenModal(false)}>
                     <ModalContent onClick={(e) => e.stopPropagation()}>
                         <ModalHeader>
-                            <ModalTitle>Select a Token</ModalTitle>
-                            <CloseButton onClick={() => setShowTokenModal(false)}>×</CloseButton>
+                            <ModalTitle>{selectingToken === 'from' ? 'From' : 'To'}</ModalTitle>
+                            <HeaderButtons>
+                                <CloseButton onClick={() => setShowTokenModal(false)}>×</CloseButton>
+                            </HeaderButtons>
                         </ModalHeader>
+                        
+                        <SearchInput
+                            type="text"
+                            placeholder="Search name / address"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                        
+                        <NetworkSection>
+                            <NetworkLabel>Network: BNB Chain</NetworkLabel>
+                            <NetworkChips>
+                                <NetworkChip active>BNB Chain</NetworkChip>
+                            </NetworkChips>
+                        </NetworkSection>
+                        
+                        <PopularSection>
+                            <PopularLabel>Popular tokens</PopularLabel>
+                            <PopularChips>
+                                <PopularChip onClick={() => handleTokenSelect(TOKEN_LIST.find(t => t.symbol === 'BNB')!)}>
+                                    <img src={TOKEN_LIST.find(t => t.symbol === 'BNB')!.logo} alt="BNB" />
+                                    BNB
+                                </PopularChip>
+                                <PopularChip onClick={() => handleTokenSelect(TOKEN_LIST.find(t => t.symbol === 'USDT')!)}>
+                                    <img src={TOKEN_LIST.find(t => t.symbol === 'USDT')!.logo} alt="USDT" />
+                                    USDT
+                                </PopularChip>
+                                <PopularChip onClick={() => handleTokenSelect(TOKEN_LIST.find(t => t.symbol === 'CAKE')!)}>
+                                    <img src={TOKEN_LIST.find(t => t.symbol === 'CAKE')!.logo} alt="CAKE" />
+                                    CAKE
+                                </PopularChip>
+                                <PopularChip onClick={() => handleTokenSelect(TOKEN_LIST.find(t => t.symbol === 'BTCB')!)}>
+                                    <img src={TOKEN_LIST.find(t => t.symbol === 'BTCB')!.logo} alt="BTCB" />
+                                    BTCB
+                                </PopularChip>
+                            </PopularChips>
+                        </PopularSection>
+                        
                         <TokenList>
-                            {TOKEN_LIST.map((token) => (
-                                <TokenItem key={token.address} onClick={() => handleTokenSelect(token)}>
-                                    <img src={token.logo} alt={token.symbol} />
-                                    <TokenInfo>
-                                        <TokenSymbol>{token.symbol}</TokenSymbol>
-                                        <TokenName>{token.name}</TokenName>
-                                    </TokenInfo>
-                                </TokenItem>
-                            ))}
+                            {TOKEN_LIST
+                                .filter(token => 
+                                    token.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                    token.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                    token.address.toLowerCase().includes(searchQuery.toLowerCase())
+                                )
+                                .map((token) => {
+                                    const balance = tokenBalances[token.symbol] || '0';
+                                    const balanceNum = parseFloat(balance);
+                                    const price = token.symbol === 'BNB' ? 600 : token.symbol === 'CAKE' ? 3 : token.symbol === 'USDT' ? 1 : token.symbol === 'BUSD' ? 1 : token.symbol === 'USDC' ? 1 : token.symbol === 'BTCB' ? 65000 : token.symbol === 'ETH' ? 3500 : token.symbol === 'PAYU' ? 0.0001 : 1;
+                                    const usdValue = balanceNum * price;
+                                    
+                                    return (
+                                        <TokenItem key={token.address} onClick={() => handleTokenSelect(token)}>
+                                            <img src={token.logo} alt={token.symbol} />
+                                            <TokenInfo>
+                                                <TokenSymbol>{token.symbol}</TokenSymbol>
+                                                <TokenName>{token.name}</TokenName>
+                                            </TokenInfo>
+                                            <div>
+                                                <TokenBalance>
+                                                    {balanceNum > 0 ? balanceNum.toFixed(6) : '0'}
+                                                </TokenBalance>
+                                                {balanceNum > 0 && (
+                                                    <TokenBalanceUSD>
+                                                        ${usdValue.toFixed(2)}
+                                                    </TokenBalanceUSD>
+                                                )}
+                                            </div>
+                                            <BSCBadge>B</BSCBadge>
+                                        </TokenItem>
+                                    );
+                                })}
                         </TokenList>
                     </ModalContent>
                 </ModalOverlay>
