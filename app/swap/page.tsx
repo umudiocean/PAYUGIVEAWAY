@@ -83,6 +83,7 @@ const TOKEN_LIST = [
     { symbol: "LTC", name: "Litecoin Token", address: "0x4338665CBB7B2485A8855A139b75D5e34AB0DB94", decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0x4338665CBB7B2485A8855A139b75D5e34AB0DB94.png" },
     { symbol: "BCH", name: "Bitcoin Cash Token", address: "0x8fF795a6F4D97E7887C79beA79aba5cc76444aDf", decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0x8fF795a6F4D97E7887C79beA79aba5cc76444aDf.png" },
     { symbol: "XRP", name: "XRP Token", address: "0x1D2F0da169ceB9fC7B3144628dB156f3F6c60dBE", decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0x1D2F0da169ceB9fC7B3144628dB156f3F6c60dBE.png" },
+    { symbol: "CUSTOM", name: "Custom Token", address: "0x9eeb6c5ff183e6001c65a12d70026b900ae76781", decimals: 18, logo: "https://tokens.pancakeswap.finance/images/symbol/bnb.png" },
 ];
 
 
@@ -592,7 +593,8 @@ export default function SwapPage() {
                 'USDC': 1,
                 'BTCB': 65000,
                 'ETH': 3500,
-                'PAYU': payuPriceInUSD
+                'PAYU': payuPriceInUSD,
+                'CUSTOM': 0.0001 // Custom token için varsayılan fiyat
             });
             
             console.log('Updated prices:', {
@@ -611,7 +613,8 @@ export default function SwapPage() {
                 'USDC': 1,
                 'BTCB': 65000,
                 'ETH': 3500,
-                'PAYU': 0.000000001
+                'PAYU': 0.000000001,
+                'CUSTOM': 0.0001
             });
         }
     }, []);
