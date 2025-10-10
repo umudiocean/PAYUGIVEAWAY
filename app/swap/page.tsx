@@ -542,8 +542,8 @@ export default function SwapPage() {
     const [account, setAccount] = useState<string>('');
     const [contract, setContract] = useState<any>(null);
     
-    const [fromToken, setFromToken] = useState(TOKEN_LIST[0]);
-    const [toToken, setToToken] = useState(TOKEN_LIST[1]);
+    const [fromToken, setFromToken] = useState(TOKEN_LIST[1]); // BNB
+    const [toToken, setToToken] = useState(TOKEN_LIST[0]); // PAYU
     const [fromAmount, setFromAmount] = useState<string>('');
     const [toAmount, setToAmount] = useState<string>('');
     const [fromBalance, setFromBalance] = useState<string>('0');
@@ -1138,18 +1138,6 @@ export default function SwapPage() {
                             {loading ? 'Swapping...' : 'Swap'}
                         </SwapButton>
 
-                        {/* MetaMask Uyarı Bilgisi */}
-                        <div style={{ 
-                            marginTop: '12px', 
-                            padding: '8px 12px', 
-                            backgroundColor: '#2D1B69', 
-                            borderRadius: '8px',
-                            fontSize: '12px',
-                            color: '#B8ADD2',
-                            textAlign: 'center'
-                        }}>
-                            ⚠️ İlk swap işleminde MetaMask güvenlik uyarısı çıkabilir. Bu normal bir durumdur.
-                        </div>
 
                         {error && <ErrorText>{error}</ErrorText>}
                         {success && <SuccessText>{success}</SuccessText>}
