@@ -544,19 +544,56 @@ export default function SwapPage() {
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [tokenBalances, setTokenBalances] = useState<{[key: string]: string}>({});
     
-    // Gerçekçi token fiyatları (güncel)
+    // Gerçek zamanlı token fiyatları
+    const [realTimePrices, setRealTimePrices] = useState<{[key: string]: number}>({});
+    
+    // PancakeSwap API'den gerçek fiyatları al
+    const fetchRealTimePrices = useCallback(async () => {
+        try {
+            // PancakeSwap API'den BNB fiyatını al
+            const bnbResponse = await fetch('https://api.pancakeswap.info/api/v2/tokens/0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c');
+            const bnbData = await bnbResponse.json();
+            const bnbPrice = parseFloat(bnbData.data.price);
+            
+            // CAKE fiyatını al
+            const cakeResponse = await fetch('https://api.pancakeswap.info/api/v2/tokens/0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82');
+            const cakeData = await cakeResponse.json();
+            const cakePrice = parseFloat(cakeData.data.price);
+            
+            // PAYU fiyatını hesapla (BNB cinsinden)
+            const payuResponse = await fetch('https://api.pancakeswap.info/api/v2/tokens/0x9AeB2E6DD8d55E14292ACFCFC4077e33106e4144');
+            const payuData = await payuResponse.json();
+            const payuPriceInBNB = parseFloat(payuData.data.price);
+            const payuPriceInUSD = payuPriceInBNB * bnbPrice;
+            
+            setRealTimePrices({
+                'BNB': bnbPrice,
+                'CAKE': cakePrice,
+                'USDT': 1,
+                'BUSD': 1,
+                'USDC': 1,
+                'BTCB': 65000,
+                'ETH': 3500,
+                'PAYU': payuPriceInUSD
+            });
+        } catch (error) {
+            console.error('Error fetching prices:', error);
+            // Fallback fiyatlar
+            setRealTimePrices({
+                'BNB': 600,
+                'CAKE': 2.5,
+                'USDT': 1,
+                'BUSD': 1,
+                'USDC': 1,
+                'BTCB': 65000,
+                'ETH': 3500,
+                'PAYU': 0.0001
+            });
+        }
+    }, []);
+
     const getTokenPrice = (symbol: string): number => {
-        const prices: {[key: string]: number} = {
-            'BNB': 600,
-            'CAKE': 2.5,
-            'USDT': 1,
-            'BUSD': 1,
-            'USDC': 1,
-            'BTCB': 65000,
-            'ETH': 3500,
-            'PAYU': 0.0001
-        };
-        return prices[symbol] || 1;
+        return realTimePrices[symbol] || 1;
     };
 
     // Connect wallet
@@ -662,6 +699,14 @@ export default function SwapPage() {
             updateAllTokenBalances();
         }
     }, [account, fromToken, updateBalance, updateAllTokenBalances]);
+
+    // Sayfa yüklendiğinde fiyatları al
+    useEffect(() => {
+        fetchRealTimePrices();
+        // Her 30 saniyede bir fiyatları güncelle
+        const interval = setInterval(fetchRealTimePrices, 30000);
+        return () => clearInterval(interval);
+    }, [fetchRealTimePrices]);
 
     useEffect(() => {
         if (fromAmount && contract) {
@@ -836,7 +881,7 @@ export default function SwapPage() {
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
                                 <span style={{ color: '#B8ADD2', fontSize: '14px', fontFamily: 'Kanit' }}>From</span>
                                 <div style={{ display: 'flex', gap: '8px' }}>
-                                    <button
+                                <button
                                         style={{ 
                                             background: 'none', 
                                             border: 'none', 
