@@ -312,6 +312,7 @@ const ModalContent = styled.div`
     border-radius: 24px;
     width: 90%;
     max-width: 420px;
+    height: 80vh;
     max-height: 80vh;
     overflow: hidden;
     display: flex;
@@ -542,6 +543,21 @@ export default function SwapPage() {
     const [tokenPrices, setTokenPrices] = useState<{[key: string]: number}>({});
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [tokenBalances, setTokenBalances] = useState<{[key: string]: string}>({});
+    
+    // Gerçekçi token fiyatları (güncel)
+    const getTokenPrice = (symbol: string): number => {
+        const prices: {[key: string]: number} = {
+            'BNB': 600,
+            'CAKE': 2.5,
+            'USDT': 1,
+            'BUSD': 1,
+            'USDC': 1,
+            'BTCB': 65000,
+            'ETH': 3500,
+            'PAYU': 0.0001
+        };
+        return prices[symbol] || 1;
+    };
 
     // Connect wallet
     const connectWallet = async () => {
@@ -884,7 +900,7 @@ export default function SwapPage() {
                                     fontSize: '12px',
                                     fontFamily: 'Kanit'
                                 }}>
-                                    ~${(parseFloat(fromAmount) * (fromToken.symbol === 'BNB' ? 600 : fromToken.symbol === 'CAKE' ? 3 : 1)).toFixed(2)} USD
+                                    ~${(parseFloat(fromAmount) * getTokenPrice(fromToken.symbol)).toFixed(2)} USD
                                 </div>
                             )}
                 </TokenBox>
@@ -917,7 +933,7 @@ export default function SwapPage() {
                                     fontSize: '12px',
                                     fontFamily: 'Kanit'
                                 }}>
-                                    ~${(parseFloat(toAmount) * (toToken.symbol === 'BNB' ? 600 : toToken.symbol === 'CAKE' ? 3 : 1)).toFixed(2)} USD
+                                    ~${(parseFloat(toAmount) * getTokenPrice(toToken.symbol)).toFixed(2)} USD
                                 </div>
                             )}
                 </TokenBox>
@@ -1092,7 +1108,7 @@ export default function SwapPage() {
                                 .map((token) => {
                                     const balance = tokenBalances[token.symbol] || '0';
                                     const balanceNum = parseFloat(balance);
-                                    const price = token.symbol === 'BNB' ? 600 : token.symbol === 'CAKE' ? 3 : token.symbol === 'USDT' ? 1 : token.symbol === 'BUSD' ? 1 : token.symbol === 'USDC' ? 1 : token.symbol === 'BTCB' ? 65000 : token.symbol === 'ETH' ? 3500 : token.symbol === 'PAYU' ? 0.0001 : 1;
+                                    const price = getTokenPrice(token.symbol);
                                     const usdValue = balanceNum * price;
                                     
                                     return (
