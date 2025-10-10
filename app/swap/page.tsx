@@ -1117,6 +1117,19 @@ export default function SwapPage() {
                             {loading ? 'Swapping...' : 'Swap'}
                         </SwapButton>
 
+                        {/* MetaMask Uyarı Bilgisi */}
+                        <div style={{ 
+                            marginTop: '12px', 
+                            padding: '8px 12px', 
+                            backgroundColor: '#2D1B69', 
+                            borderRadius: '8px',
+                            fontSize: '12px',
+                            color: '#B8ADD2',
+                            textAlign: 'center'
+                        }}>
+                            ⚠️ İlk swap işleminde MetaMask güvenlik uyarısı çıkabilir. Bu normal bir durumdur.
+                        </div>
+
                         {error && <ErrorText>{error}</ErrorText>}
                         {success && <SuccessText>{success}</SuccessText>}
                     </>
