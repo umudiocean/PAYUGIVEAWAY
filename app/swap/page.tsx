@@ -536,6 +536,129 @@ const BSCBadge = styled.div`
     color: #000;
 `;
 
+const FuturisticLoader = styled.div<{ show: boolean }>`
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #16213e 100%);
+    display: ${props => props.show ? 'flex' : 'none'};
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    backdrop-filter: blur(10px);
+    animation: ${props => props.show ? 'fadeIn 0.3s ease-in-out' : 'none'};
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+`;
+
+const LoadingRing = styled.div`
+    width: 120px;
+    height: 120px;
+    border: 3px solid transparent;
+    border-top: 3px solid #1FC7D4;
+    border-right: 3px solid #7645D9;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    position: relative;
+    
+    &::before {
+        content: '';
+        position: absolute;
+        top: -6px;
+        left: -6px;
+        right: -6px;
+        bottom: -6px;
+        border: 2px solid transparent;
+        border-top: 2px solid #1FC7D4;
+        border-radius: 50%;
+        animation: spin 1.2s linear infinite reverse;
+        opacity: 0.7;
+    }
+    
+    &::after {
+        content: '';
+        position: absolute;
+        top: -12px;
+        left: -12px;
+        right: -12px;
+        bottom: -12px;
+        border: 1px solid transparent;
+        border-top: 1px solid #7645D9;
+        border-radius: 50%;
+        animation: spin 1.6s linear infinite;
+        opacity: 0.5;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+`;
+
+const LoadingParticles = styled.div`
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    
+    &::before, &::after {
+        content: '';
+        position: absolute;
+        width: 4px;
+        height: 4px;
+        background: #1FC7D4;
+        border-radius: 50%;
+        animation: float 2s ease-in-out infinite;
+    }
+    
+    &::before {
+        top: 20%;
+        left: 20%;
+        animation-delay: 0s;
+    }
+    
+    &::after {
+        top: 60%;
+        right: 20%;
+        animation-delay: 1s;
+    }
+    
+    @keyframes float {
+        0%, 100% { transform: translateY(0px) scale(1); opacity: 0.8; }
+        50% { transform: translateY(-20px) scale(1.2); opacity: 1; }
+    }
+`;
+
+const LoadingText = styled.div`
+    color: #1FC7D4;
+    font-size: 18px;
+    font-weight: 700;
+    font-family: 'Kanit', sans-serif;
+    margin-top: 30px;
+    text-align: center;
+    animation: pulse 1.5s ease-in-out infinite;
+    
+    @keyframes pulse {
+        0%, 100% { opacity: 0.8; transform: scale(1); }
+        50% { opacity: 1; transform: scale(1.05); }
+    }
+`;
+
+const LoadingSubtext = styled.div`
+    color: #B8ADD2;
+    font-size: 14px;
+    font-family: 'Kanit', sans-serif;
+    margin-top: 8px;
+    text-align: center;
+    opacity: 0.8;
+`;
+
 // ==================== MAIN COMPONENT ====================
 export default function SwapPage() {
     const [web3, setWeb3] = useState<Web3 | null>(null);
@@ -549,6 +672,7 @@ export default function SwapPage() {
     const [fromBalance, setFromBalance] = useState<string>('0');
     
     const [loading, setLoading] = useState<boolean>(false);
+    const [showFuturisticLoader, setShowFuturisticLoader] = useState<boolean>(false);
     const [slippage, setSlippage] = useState<number>(0.5);
     const [mevProtect, setMevProtect] = useState<boolean>(false);
     const [error, setError] = useState<string>('');
@@ -773,6 +897,7 @@ export default function SwapPage() {
         }
 
         setLoading(true);
+        setShowFuturisticLoader(true);
         setError('');
         setSuccess('');
 
@@ -850,7 +975,7 @@ export default function SwapPage() {
                 });
             }
 
-            setSuccess('Swap successful! 🎉');
+            setSuccess('Swap successful!');
             setFromAmount('');
             setToAmount('');
             
@@ -865,6 +990,10 @@ export default function SwapPage() {
             }
         } finally {
             setLoading(false);
+            // Hızlı animasyon için kısa bir gecikme
+            setTimeout(() => {
+                setShowFuturisticLoader(false);
+            }, 1000);
         }
     };
 
@@ -908,7 +1037,16 @@ export default function SwapPage() {
     };
 
         return (
-        <Container>
+        <>
+            <FuturisticLoader show={showFuturisticLoader}>
+                <LoadingRing>
+                    <LoadingParticles />
+                </LoadingRing>
+                <LoadingText>Processing Swap</LoadingText>
+                <LoadingSubtext>Executing transaction...</LoadingSubtext>
+            </FuturisticLoader>
+            
+            <Container>
                 <SwapCard>
                 <SwapHeader>
                     <SwapTitle>Swap</SwapTitle>
@@ -1281,6 +1419,7 @@ export default function SwapPage() {
                     </ModalContent>
                 </ModalOverlay>
             )}
-        </Container>
+            </Container>
+        </>
     );
 }
