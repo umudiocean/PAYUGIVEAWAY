@@ -22,6 +22,21 @@ const config: Config = {
           bg: '#0B0F14',
           card: 'rgba(0, 0, 0, 0.8)',
           text: '#A7AAB3',
+        },
+        // PancakeSwap Dark Theme Colors
+        pancake: {
+          bg: '#08060E',
+          card: '#27262C',
+          'card-hover': '#372F47',
+          primary: '#7645D9',
+          'primary-dark': '#5121B1',
+          secondary: '#1FC7D4',
+          text: '#F4EEFF',
+          'text-dim': '#B8ADD2',
+          'text-disabled': '#666171',
+          success: '#31D0AA',
+          warning: '#FFB237',
+          danger: '#ED4B9E',
         }
       },
       animation: {
@@ -69,6 +84,17 @@ const config: Config = {
       },
       fontFamily: {
         'neon': ['JetBrains Mono', 'monospace'],
+        'kanit': ['Kanit', 'sans-serif'],
+      },
+      borderRadius: {
+        'pancake': '32px',
+        'pancake-inner': '16px',
+        'pancake-button': '16px',
+        'pancake-swap': '12px',
+      },
+      boxShadow: {
+        'pancake': '0px 20px 36px -8px rgba(14, 14, 44, 0.1)',
+        'pancake-button': '0 0 20px rgba(118, 69, 217, 0.5)',
       }
     },
   },

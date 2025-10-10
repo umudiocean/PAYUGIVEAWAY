@@ -79,20 +79,24 @@ const TOKEN_LIST = [
 // ==================== STYLED COMPONENTS ====================
 const Container = styled.div`
     min-height: 100vh;
-    background: linear-gradient(139.73deg, rgb(8, 6, 22) 0%, rgb(15, 12, 35) 100%);
+    background: linear-gradient(139.73deg, #08060E 0%, #0F0C23 100%);
     display: flex;
     justify-content: center;
     align-items: center;
     padding: 20px;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: 'Kanit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 `;
 
 const SwapCard = styled.div`
-    background: #27262c;
+    background: #27262C;
     border-radius: 32px;
     width: 100%;
     max-width: 440px;
     padding: 24px;
+    box-shadow: 0px 20px 36px -8px rgba(14, 14, 44, 0.1);
+    @media (min-width: 768px) {
+        max-width: 820px;
+    }
 `;
 
 const SwapHeader = styled.div`
@@ -107,18 +111,29 @@ const SwapTitle = styled.h2`
     font-weight: 700;
     color: #F4EEFF;
     margin: 0;
+    font-family: 'Kanit', sans-serif;
 `;
 
 const WalletButton = styled.button`
     width: 100%;
-    padding: 16px;
+    height: 48px;
+    padding: 0 16px;
     background: linear-gradient(270deg, #7645D9 0%, #5121B1 100%);
     color: white;
     border: none;
     border-radius: 16px;
-    font-size: 16px;
-    font-weight: 600;
+    font-size: 18px;
+    font-weight: 700;
     cursor: pointer;
+    font-family: 'Kanit', sans-serif;
+    transition: all 0.2s ease;
+    &:hover {
+        box-shadow: 0 0 20px rgba(118, 69, 217, 0.5);
+        transform: translateY(-1px);
+    }
+    &:active {
+        transform: translateY(0);
+    }
 `;
 
 const ConnectedWallet = styled.div`
@@ -127,10 +142,16 @@ const ConnectedWallet = styled.div`
     justify-content: space-between;
     padding: 12px 16px;
     background: #372F47;
-    border-radius: 12px;
+    border-radius: 16px;
     margin-bottom: 16px;
     font-size: 14px;
     color: #F4EEFF;
+    font-family: 'Kanit', sans-serif;
+    border: 2px solid transparent;
+    transition: border-color 0.2s ease;
+    &:hover {
+        border-color: #7645D9;
+    }
 `;
 
 const TokenBox = styled.div`
@@ -138,6 +159,12 @@ const TokenBox = styled.div`
     border-radius: 16px;
     padding: 16px;
     margin-bottom: 8px;
+    border: 2px solid transparent;
+    transition: all 0.2s ease;
+    &:hover {
+        border-color: #7645D9;
+        background: #3A3149;
+    }
 `;
 
 const TokenInput = styled.input`
@@ -149,24 +176,44 @@ const TokenInput = styled.input`
     color: #F4EEFF;
     outline: none;
     width: 100%;
+    font-family: 'Kanit', sans-serif;
+    &::placeholder {
+        color: #B8ADD2;
+        opacity: 0.7;
+    }
+    &:focus {
+        outline: none;
+    }
 `;
 
 const TokenSelectButton = styled.button`
     display: flex;
     align-items: center;
     gap: 8px;
-    background: #27262c;
+    background: #27262C;
     border: none;
     padding: 8px 12px;
     border-radius: 12px;
     cursor: pointer;
     color: #F4EEFF;
-    img { width: 24px; height: 24px; border-radius: 50%; }
+    font-family: 'Kanit', sans-serif;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    &:hover {
+        background: #372F47;
+        transform: translateY(-1px);
+    }
+    img { 
+        width: 24px; 
+        height: 24px; 
+        border-radius: 50%; 
+    }
 `;
 
 const SwapButton = styled.button<{ disabled?: boolean }>`
     width: 100%;
-    padding: 16px;
+    height: 48px;
+    padding: 0 16px;
     background: ${props => props.disabled ? '#383241' : 'linear-gradient(270deg, #7645D9 0%, #5121B1 100%)'};
     color: ${props => props.disabled ? '#B8ADD2' : 'white'};
     border: none;
@@ -175,6 +222,14 @@ const SwapButton = styled.button<{ disabled?: boolean }>`
     font-weight: 700;
     cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
     margin-top: 16px;
+    font-family: 'Kanit', sans-serif;
+    transition: all 0.2s ease;
+    &:hover {
+        ${props => !props.disabled && 'box-shadow: 0 0 20px rgba(118, 69, 217, 0.5); transform: translateY(-1px);'}
+    }
+    &:active {
+        transform: translateY(0);
+    }
 `;
 
 const FeeInfo = styled.div`
@@ -182,10 +237,12 @@ const FeeInfo = styled.div`
     justify-content: space-between;
     padding: 12px;
     background: rgba(31, 199, 212, 0.1);
-    border-radius: 12px;
+    border-radius: 16px;
     margin-top: 12px;
     font-size: 14px;
     color: #1FC7D4;
+    font-family: 'Kanit', sans-serif;
+    border: 1px solid rgba(31, 199, 212, 0.2);
 `;
 
 const ErrorText = styled.div`
@@ -194,7 +251,9 @@ const ErrorText = styled.div`
     margin-top: 12px;
     padding: 12px;
     background: rgba(237, 75, 158, 0.1);
-    border-radius: 12px;
+    border-radius: 16px;
+    font-family: 'Kanit', sans-serif;
+    border: 1px solid rgba(237, 75, 158, 0.2);
 `;
 
 const SuccessText = styled.div`
@@ -203,14 +262,16 @@ const SuccessText = styled.div`
     margin-top: 12px;
     padding: 12px;
     background: rgba(49, 208, 170, 0.1);
-    border-radius: 12px;
+    border-radius: 16px;
+    font-family: 'Kanit', sans-serif;
+    border: 1px solid rgba(49, 208, 170, 0.2);
 `;
 
 const ArrowButton = styled.button`
     width: 40px;
     height: 40px;
-    background: #27262c;
-    border: 4px solid #372F47;
+    background: #27262C;
+    border: 4px solid #1E1D20;
     border-radius: 12px;
     display: flex;
     align-items: center;
@@ -221,6 +282,12 @@ const ArrowButton = styled.button`
     margin: -16px auto;
     position: relative;
     z-index: 1;
+    transition: all 0.3s ease;
+    &:hover {
+        background: #372F47;
+        transform: rotate(180deg);
+        border-color: #7645D9;
+    }
 `;
 
 // ==================== MAIN COMPONENT ====================
@@ -236,7 +303,8 @@ export default function SwapPage() {
     const [fromBalance, setFromBalance] = useState<string>('0');
     
     const [loading, setLoading] = useState<boolean>(false);
-    const [slippage] = useState<number>(2);
+    const [slippage, setSlippage] = useState<number>(0.5);
+    const [mevProtect, setMevProtect] = useState<boolean>(false);
     const [error, setError] = useState<string>('');
     const [success, setSuccess] = useState<string>('');
 
@@ -454,9 +522,17 @@ export default function SwapPage() {
 
                 <TokenBox>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                                <span style={{ color: '#B8ADD2', fontSize: '14px' }}>From</span>
+                                <span style={{ color: '#B8ADD2', fontSize: '14px', fontFamily: 'Kanit' }}>From</span>
                                 <button
-                                    style={{ background: 'none', border: 'none', color: '#1FC7D4', cursor: 'pointer', fontSize: '14px' }}
+                                    style={{ 
+                                        background: 'none', 
+                                        border: 'none', 
+                                        color: '#1FC7D4', 
+                                        cursor: 'pointer', 
+                                        fontSize: '14px',
+                                        fontFamily: 'Kanit',
+                                        fontWeight: '600'
+                                    }}
                                     onClick={() => setFromAmount((parseFloat(fromBalance) * 0.99).toFixed(6))}
                                 >
                                     MAX
@@ -482,7 +558,7 @@ export default function SwapPage() {
 
                 <TokenBox>
                             <div style={{ marginBottom: '12px' }}>
-                                <span style={{ color: '#B8ADD2', fontSize: '14px' }}>To</span>
+                                <span style={{ color: '#B8ADD2', fontSize: '14px', fontFamily: 'Kanit' }}>To</span>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                     <TokenInput
@@ -498,11 +574,112 @@ export default function SwapPage() {
                             </div>
                 </TokenBox>
 
-                {fromAmount && toAmount && (
+                        {/* Controls Panel */}
+                        {fromAmount && toAmount && (
+                            <>
+                                <div style={{ 
+                                    display: 'flex', 
+                                    justifyContent: 'space-between', 
+                                    alignItems: 'center',
+                                    marginTop: '16px',
+                                    marginBottom: '12px'
+                                }}>
+                                    <span style={{ color: '#B8ADD2', fontSize: '14px', fontFamily: 'Kanit' }}>Slippage Tolerance</span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <button
+                                            style={{
+                                                background: slippage === 0.1 ? '#1FC7D4' : 'transparent',
+                                                color: slippage === 0.1 ? '#27262C' : '#1FC7D4',
+                                                border: '1px solid #1FC7D4',
+                                                borderRadius: '9999px',
+                                                padding: '4px 12px',
+                                                fontSize: '12px',
+                                                fontFamily: 'Kanit',
+                                                fontWeight: '600',
+                                                cursor: 'pointer'
+                                            }}
+                                            onClick={() => setSlippage(0.1)}
+                                        >
+                                            0.1%
+                                        </button>
+                                        <button
+                                            style={{
+                                                background: slippage === 0.5 ? '#1FC7D4' : 'transparent',
+                                                color: slippage === 0.5 ? '#27262C' : '#1FC7D4',
+                                                border: '1px solid #1FC7D4',
+                                                borderRadius: '9999px',
+                                                padding: '4px 12px',
+                                                fontSize: '12px',
+                                                fontFamily: 'Kanit',
+                                                fontWeight: '600',
+                                                cursor: 'pointer'
+                                            }}
+                                            onClick={() => setSlippage(0.5)}
+                                        >
+                                            0.5%
+                                        </button>
+                                        <button
+                                            style={{
+                                                background: slippage === 1 ? '#1FC7D4' : 'transparent',
+                                                color: slippage === 1 ? '#27262C' : '#1FC7D4',
+                                                border: '1px solid #1FC7D4',
+                                                borderRadius: '9999px',
+                                                padding: '4px 12px',
+                                                fontSize: '12px',
+                                                fontFamily: 'Kanit',
+                                                fontWeight: '600',
+                                                cursor: 'pointer'
+                                            }}
+                                            onClick={() => setSlippage(1)}
+                                        >
+                                            1%
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div style={{ 
+                                    display: 'flex', 
+                                    justifyContent: 'space-between', 
+                                    alignItems: 'center',
+                                    marginBottom: '16px'
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <span style={{ color: '#F4EEFF', fontSize: '16px' }}>🛡️</span>
+                                        <span style={{ color: '#F4EEFF', fontSize: '14px', fontFamily: 'Kanit' }}>Enable MEV Protect</span>
+                                    </div>
+                                    <button
+                                        style={{
+                                            width: '44px',
+                                            height: '24px',
+                                            background: mevProtect ? '#1FC7D4' : '#666171',
+                                            border: 'none',
+                                            borderRadius: '9999px',
+                                            position: 'relative',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s ease'
+                                        }}
+                                        onClick={() => setMevProtect(!mevProtect)}
+                                    >
+                                        <div
+                                            style={{
+                                                width: '20px',
+                                                height: '20px',
+                                                background: 'white',
+                                                borderRadius: '50%',
+                                                position: 'absolute',
+                                                top: '2px',
+                                                left: mevProtect ? '22px' : '2px',
+                                                transition: 'all 0.2s ease'
+                                            }}
+                                        />
+                                    </button>
+                                </div>
+
                                 <FeeInfo>
-                                <span>💰 Platform Fee: {PLATFORM_FEE} BNB</span>
-                                <span>Per swap</span>
+                                    <span>💰 Platform Fee: {PLATFORM_FEE} BNB</span>
+                                    <span>Per swap</span>
                                 </FeeInfo>
+                            </>
                         )}
 
                         <SwapButton onClick={executeSwap} disabled={!fromAmount || !toAmount || loading}>
