@@ -614,7 +614,12 @@ export default function TasksPage() {
           {/* Buy Buttons */}
           <div className="grid grid-cols-2 gap-2 mt-3">
             <motion.button
-              onClick={() => window.open('https://www.apppayu.com/swap', '_blank')}
+              onClick={() => {
+                const newWindow = window.open('https://www.apppayu.com/swap', '_blank', 'noopener,noreferrer');
+                if (!newWindow) {
+                  window.location.href = 'https://www.apppayu.com/swap';
+                }
+              }}
               className="bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-bold py-2 px-2 rounded-md hover:scale-105 transition-all duration-300"
               style={{ boxShadow: '0 0 15px rgba(147, 51, 234, 0.5)' }}
               whileHover={{ scale: 1.05 }}
@@ -624,7 +629,12 @@ export default function TasksPage() {
             </motion.button>
             
             <motion.button
-              onClick={() => window.open('https://pancakeswap.finance/swap?outputCurrency=0x9AeB2E6DD8d55E14292ACFCFC4077e33106e4144&chain=bsc', '_blank')}
+              onClick={() => {
+                const newWindow = window.open('https://pancakeswap.finance/swap?outputCurrency=0x9AeB2E6DD8d55E14292ACFCFC4077e33106e4144&chain=bsc', '_blank', 'noopener,noreferrer');
+                if (!newWindow) {
+                  window.location.href = 'https://pancakeswap.finance/swap?outputCurrency=0x9AeB2E6DD8d55E14292ACFCFC4077e33106e4144&chain=bsc';
+                }
+              }}
               className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs font-bold py-2 px-2 rounded-md hover:scale-105 transition-all duration-300"
               style={{ boxShadow: '0 0 15px rgba(251, 191, 36, 0.5)' }}
               whileHover={{ scale: 1.05 }}
