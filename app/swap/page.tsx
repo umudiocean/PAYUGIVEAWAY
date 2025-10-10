@@ -76,6 +76,13 @@ const TOKEN_LIST = [
     { symbol: "USDC", name: "USD Coin", address: "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d", decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d.png" },
     { symbol: "BTCB", name: "Bitcoin BEP2", address: "0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c", decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c.png" },
     { symbol: "ETH", name: "Ethereum Token", address: "0x2170Ed0880ac9A755fd29B2688956BD959F933F8", decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0x2170Ed0880ac9A755fd29B2688956BD959F933F8.png" },
+    { symbol: "ADA", name: "Cardano Token", address: "0x3EE2200Efb3400fAbB9AacF31297cBdD1d435D47", decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0x3EE2200Efb3400fAbB9AacF31297cBdD1d435D47.png" },
+    { symbol: "DOT", name: "Polkadot Token", address: "0x7083609fCE4d1d8Dc0C979AAb8c869Ea2C873402", decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0x7083609fCE4d1d8Dc0C979AAb8c869Ea2C873402.png" },
+    { symbol: "LINK", name: "ChainLink Token", address: "0xF8A0BF9cF54Bb92F17374d9e9A321E6a111a51bD", decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0xF8A0BF9cF54Bb92F17374d9e9A321E6a111a51bD.png" },
+    { symbol: "UNI", name: "Uniswap", address: "0xBf5140A22578168FD562DCcF235E5D43A02ce9B1", decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0xBf5140A22578168FD562DCcF235E5D43A02ce9B1.png" },
+    { symbol: "LTC", name: "Litecoin Token", address: "0x4338665CBB7B2485A8855A139b75D5e34AB0DB94", decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0x4338665CBB7B2485A8855A139b75D5e34AB0DB94.png" },
+    { symbol: "BCH", name: "Bitcoin Cash Token", address: "0x8fF795a6F4D97E7887C79beA79aba5cc76444aDf", decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0x8fF795a6F4D97E7887C79beA79aba5cc76444aDf.png" },
+    { symbol: "XRP", name: "XRP Token", address: "0x1D2F0da169ceB9fC7B3144628dB156f3F6c60dBE", decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0x1D2F0da169ceB9fC7B3144628dB156f3F6c60dBE.png" },
 ];
 
 
@@ -1155,13 +1162,28 @@ export default function SwapPage() {
                         </PopularSection>
                         
                         <TokenList>
-                            {TOKEN_LIST
-                                .filter(token => 
+                            {(() => {
+                                const filteredTokens = TOKEN_LIST.filter(token => 
                                     token.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
                                     token.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                                     token.address.toLowerCase().includes(searchQuery.toLowerCase())
-                                )
-                                .map((token) => {
+                                );
+                                
+                                if (filteredTokens.length === 0 && searchQuery) {
+                                    return (
+                                        <div style={{
+                                            padding: '20px',
+                                            textAlign: 'center',
+                                            color: '#B8ADD2',
+                                            fontFamily: 'Kanit'
+                                        }}>
+                                            <div style={{ fontSize: '16px', marginBottom: '8px' }}>No tokens found</div>
+                                            <div style={{ fontSize: '12px' }}>Try searching by symbol, name, or contract address</div>
+                                        </div>
+                                    );
+                                }
+                                
+                                return filteredTokens.map((token) => {
                                     const balance = tokenBalances[token.symbol] || '0';
                                     const balanceNum = parseFloat(balance);
                                     const price = getTokenPrice(token.symbol);
@@ -1187,7 +1209,8 @@ export default function SwapPage() {
                                             <BSCBadge>B</BSCBadge>
                                         </TokenItem>
                                     );
-                                })}
+                                });
+                            })()}
                         </TokenList>
                     </ModalContent>
                 </ModalOverlay>
