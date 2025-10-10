@@ -611,22 +611,27 @@ export default function TasksPage() {
             </div>
           </motion.div>
           
-          <div className="space-y-0 text-white/60 text-xs">
-            <p className="text-green-400">✅ 250M PAYU received</p>
-            <p className="text-white/50">Registered: {new Date(registration.createdAt).toLocaleString()}</p>
-            <motion.p 
-              className="text-yellow-400 italic font-light"
-              animate={{ 
-                textShadow: [
-                  '0 0 5px rgba(255, 215, 0, 0.3)',
-                  '0 0 10px rgba(255, 215, 0, 0.6)',
-                  '0 0 5px rgba(255, 215, 0, 0.3)'
-                ]
-              }}
-              transition={{ duration: 4, repeat: Infinity }}
+          {/* Buy Buttons */}
+          <div className="grid grid-cols-2 gap-2 mt-3">
+            <motion.button
+              onClick={() => window.open('https://www.apppayu.com/swap', '_blank')}
+              className="bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-bold py-2 px-2 rounded-md hover:scale-105 transition-all duration-300"
+              style={{ boxShadow: '0 0 15px rgba(147, 51, 234, 0.5)' }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
-              Keep this ticket safe!
-            </motion.p>
+              BUY ON PAYU SWAP
+            </motion.button>
+            
+            <motion.button
+              onClick={() => window.open('https://pancakeswap.finance/swap?outputCurrency=0x9AeB2E6DD8d55E14292ACFCFC4077e33106e4144&chain=bsc', '_blank')}
+              className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs font-bold py-2 px-2 rounded-md hover:scale-105 transition-all duration-300"
+              style={{ boxShadow: '0 0 15px rgba(251, 191, 36, 0.5)' }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              BUY ON PANCAKESWAP
+            </motion.button>
           </div>
         </motion.div>
 
