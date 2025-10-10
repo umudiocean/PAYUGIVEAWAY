@@ -84,6 +84,13 @@ const TOKEN_LIST = [
     { symbol: "BCH", name: "Bitcoin Cash Token", address: "0x8fF795a6F4D97E7887C79beA79aba5cc76444aDf", decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0x8fF795a6F4D97E7887C79beA79aba5cc76444aDf.png" },
     { symbol: "XRP", name: "XRP Token", address: "0x1D2F0da169ceB9fC7B3144628dB156f3F6c60dBE", decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0x1D2F0da169ceB9fC7B3144628dB156f3F6c60dBE.png" },
     { symbol: "CUSTOM", name: "Custom Token", address: "0x9eeb6c5ff183e6001c65a12d70026b900ae76781", decimals: 18, logo: "https://tokens.pancakeswap.finance/images/symbol/bnb.png" },
+    { symbol: "ADA", name: "Cardano Token", address: "0x3EE2200Efb3400fAbB9AacF31297cBdD1d435D47", decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0x3EE2200Efb3400fAbB9AacF31297cBdD1d435D47.png" },
+    { symbol: "DOGE", name: "Dogecoin", address: "0xbA2aE424d960c26247Dd6c32edC70B295c744C43", decimals: 8, logo: "https://tokens.pancakeswap.finance/images/0xbA2aE424d960c26247Dd6c32edC70B295c744C43.png" },
+    { symbol: "MATIC", name: "Polygon", address: "0xCC42724C6683B7E57334c4E856f4c9965ED682bD", decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0xCC42724C6683B7E57334c4E856f4c9965ED682bD.png" },
+    { symbol: "AVAX", name: "Avalanche", address: "0x1CE0c2827e2eF14D5C4f29a091d735A204794041", decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0x1CE0c2827e2eF14D5C4f29a091d735A204794041.png" },
+    { symbol: "SOL", name: "Solana", address: "0x570A5D26f7765Ecb712C0924E4De545B89fD43dF", decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0x570A5D26f7765Ecb712C0924E4De545B89fD43dF.png" },
+    { symbol: "SHIB", name: "Shiba Inu", address: "0x2859e4544C4bB03966803b044A93563Bd2D0DD4D", decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0x2859e4544C4bB03966803b044A93563Bd2D0DD4D.png" },
+    { symbol: "PEPE", name: "Pepe", address: "0x25d887Ce7a35172C62FeBFD67a1851F35C727E0e", decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0x25d887Ce7a35172C62FeBFD67a1851F35C727E0e.png" },
 ];
 
 
@@ -594,7 +601,14 @@ export default function SwapPage() {
                 'BTCB': 65000,
                 'ETH': 3500,
                 'PAYU': payuPriceInUSD,
-                'CUSTOM': 0.0001 // Custom token için varsayılan fiyat
+                'CUSTOM': 0.0001, // Custom token için varsayılan fiyat
+                'ADA': 0.45,
+                'DOGE': 0.08,
+                'MATIC': 0.85,
+                'AVAX': 35,
+                'SOL': 180,
+                'SHIB': 0.000025,
+                'PEPE': 0.000001
             });
             
             console.log('Updated prices:', {
@@ -614,7 +628,14 @@ export default function SwapPage() {
                 'BTCB': 65000,
                 'ETH': 3500,
                 'PAYU': 0.000000001,
-                'CUSTOM': 0.0001
+                'CUSTOM': 0.0001,
+                'ADA': 0.45,
+                'DOGE': 0.08,
+                'MATIC': 0.85,
+                'AVAX': 35,
+                'SOL': 180,
+                'SHIB': 0.000025,
+                'PEPE': 0.000001
             });
         }
     }, []);
@@ -1185,11 +1206,46 @@ export default function SwapPage() {
                         
                         <TokenList>
                             {(() => {
-                                const filteredTokens = TOKEN_LIST.filter(token => 
-                                    token.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                                    token.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                                    token.address.toLowerCase().includes(searchQuery.toLowerCase())
-                                );
+                                const filteredTokens = TOKEN_LIST.filter(token => {
+                                    const query = searchQuery.toLowerCase().trim();
+                                    if (!query) return true;
+                                    
+                                    // Symbol arama (tam eşleşme öncelikli)
+                                    if (token.symbol.toLowerCase() === query) return true;
+                                    if (token.symbol.toLowerCase().includes(query)) return true;
+                                    
+                                    // Name arama
+                                    if (token.name.toLowerCase().includes(query)) return true;
+                                    
+                                    // Address arama (tam veya kısmi)
+                                    if (token.address.toLowerCase().includes(query)) return true;
+                                    
+                                    // Kelime bazlı arama (name içinde)
+                                    const nameWords = token.name.toLowerCase().split(' ');
+                                    const queryWords = query.split(' ');
+                                    if (queryWords.every(word => nameWords.some(nameWord => nameWord.includes(word)))) return true;
+                                    
+                                    return false;
+                                });
+                                
+                                // Sonuçları öncelik sırasına göre sırala
+                                filteredTokens.sort((a, b) => {
+                                    const query = searchQuery.toLowerCase().trim();
+                                    
+                                    // Tam symbol eşleşmesi en üstte
+                                    if (a.symbol.toLowerCase() === query && b.symbol.toLowerCase() !== query) return -1;
+                                    if (b.symbol.toLowerCase() === query && a.symbol.toLowerCase() !== query) return 1;
+                                    
+                                    // Symbol başlangıcı eşleşmesi
+                                    if (a.symbol.toLowerCase().startsWith(query) && !b.symbol.toLowerCase().startsWith(query)) return -1;
+                                    if (b.symbol.toLowerCase().startsWith(query) && !a.symbol.toLowerCase().startsWith(query)) return 1;
+                                    
+                                    // Name başlangıcı eşleşmesi
+                                    if (a.name.toLowerCase().startsWith(query) && !b.name.toLowerCase().startsWith(query)) return -1;
+                                    if (b.name.toLowerCase().startsWith(query) && !a.name.toLowerCase().startsWith(query)) return 1;
+                                    
+                                    return 0;
+                                });
                                 
                                 if (filteredTokens.length === 0 && searchQuery) {
                                     return (
